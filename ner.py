@@ -118,6 +118,8 @@ from flask import request, Response, Flask
 from lxml import etree
 from polyglot.text import Text
 
+from corpora import times_test
+
 application = Flask(__name__)
 application.debug = True
 
@@ -609,7 +611,8 @@ def index():
         return (resp)
 
     try:
-        parsed_text = ocr_to_dict(url)
+        parsed_text = times_test.get_corpus()        
+        # parsed_text = ocr_to_dict(url)
     except Exception:
         result = {"error": "Failed to fetch %s" % url}
         resp = Response(response=json.dumps(result),
@@ -647,8 +650,14 @@ def index():
             for item in result_all[part]:
                 fresult.append(item)
 
-    result = json.dumps({"entities": fresult,
-                         "text": parsed_text})
+    result = json.dumps({"entities": fresult})
+
+    # result = json.dumps({"entities": fresult,
+    #                      "text": parsed_text})
+
+    TEST_OUTPUT = '/home/alexhebing/Projects/placenamedisambiguation/test_files/output/entities.json'
+    with open(TEST_OUTPUT, 'w+') as file:    
+        file.write(json.dumps({"entities": fresult}, indent=4, sort_keys=True))
 
     resp = Response(response=result,
                     mimetype='application/json; charset=utf-8')
