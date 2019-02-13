@@ -230,7 +230,8 @@ class Stanford(threading.Thread):
                                         port=STANFORD_PORT,
                                         timeout=TIMEOUT)
                 done = True
-            except:
+            except Exception as e:
+                print(e)
                 retry += 1
 
         if not done:
@@ -249,13 +250,12 @@ class Stanford(threading.Thread):
         p_tag = ''
         for item in data.iter():
             if not item.tag == 'root':
-                tag = item.tag.split('-')[1]
-                if item.tag.split('-')[0] == 'I' and p_tag == tag:
+                if item.tag.split('-')[0] == 'I' and p_tag == item.tag.split('-')[1]:
                     result[-1]["ne"] = result[-1]["ne"] + ' ' + item.text
                 else:
                     result.append({"ne": item.text,
-                                   "type": translate(item.tag.split('-')[1])})
-                    p_tag = tag
+                                   "type": translate(item.tag)})
+                    p_tag = item.tag        
 
         offset = 0
         for i, ne in enumerate(result):
@@ -329,7 +329,8 @@ class Polyglot(threading.Thread):
                 pos = self.parsed_text[offset:].find(ne)
                 result[i]["pos"] = pos + offset
                 offset += pos + len(ne)
-        except Exception:
+        except Exception as e:
+            print(e)
             result = []
 
         self.result = {"polyglot": result}
@@ -522,7 +523,7 @@ def intergrate_results(result, source, source_text, context_len):
                                     list(new_result[ne]["type"])[0])
 
             new_result[ne]["types"] = list(new_result[ne]["type"])
-            new_result[ne]["type"] = ne_type[0]
+            new_result[ne]["type"] = { ne_type[0] : 1}
             new_result[ne]["type_certainty"] = ne_type[1]
 
             new_result[ne]["left_context"], \
