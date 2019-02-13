@@ -26,7 +26,7 @@ Once installed (With wanted language models), run the webservices so MultiNER ca
     $ cd /path/to/stanford-ner-2018-10-16
     $ java -mx400m -cp stanford-ner.jar edu.stanford.nlp.ie.NERServer \
            -outputFormat inlineXML -encoding "utf-8" \
-           -loadClassifier dutch.crf.gz -port 1234
+           -loadClassifier dutch.crf.gz -port 9898
 
     $ cd /path/to/spotlight
     $ java --add-modules java.xml.bind -jar dbpedia-spotlight-1.0.0.jar \
@@ -457,6 +457,7 @@ class Spotlight(threading.Thread):
 
 def intergrate_results(result, source, source_text, context_len):
     new_result = {}
+    res = {}
 
     for ne in result.get("stanford"):
         res = {}
