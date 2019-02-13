@@ -105,45 +105,21 @@ if __name__ == "__main__":
     
     
 '''
-import ast
 import json
 import lxml.html
 import requests
-import spacy
-import telnetlib
-import threading
 import operator
 
-from flask import request, Response, Flask
+from flask import request, Response, current_app, Blueprint
 from lxml import etree
-from polyglot.text import Text
 
 from corpora import times_test
+from ner_packages.stanford import Stanford
+from ner_packages.spotlight import Spotlight
+from ner_packages.spacy import Spacy
+from ner_packages.polyglot import Polyglot
 
-application = Flask(__name__)
-application.debug = True
-
-# Preload Dutch data.
-nlp_spacy = spacy.load('nl')
-
-# Will be used in web-service and doctest.
-EXAMPLE_URL = "http://resolver.kb.nl/resolve?"
-EXAMPLE_URL += "urn=ddd:010381561:mpeg21:a0049:ocr"
-
-# Baseurl for Stanford standalone NER setup.
-# https://nlp.stanford.edu/software/crf-faq.shtml#cc
-# (Use inlineXML)
-STANFORD_HOST = "localhost"
-STANFORD_PORT = 9898
-
-# Baseurl for Spotlight rest-service.
-# https://github.com/dbpedia-spotlight/dbpedia-spotlight/
-SPOTLIGHT_HOST = "localhost"
-SPOTLIGHT_PORT = "9090"
-SPOTLIGHT_PATH = "/rest/annotate/"
-
-# Timeout for external NER's (stanford, spotlight)
-TIMEOUT = 1000
+api = Blueprint('', __name__)
 
 
 def context(text_org, ne, pos, context=5):
@@ -181,278 +157,18 @@ def context(text_org, ne, pos, context=5):
 
 
 def translate(input_str):
-    '''
-        Translate the labels to human-readable.
-    '''
-    if input_str == "ORG":
-        return 'organisation'
-    if input_str == "PER":
-        return 'person'
-    if input_str == "MISC":
-        return 'other'
-    if input_str == "LOC":
-        return 'location'
-    return input_str
-
-
-class Stanford(threading.Thread):
-    '''
-        Wrapper for Stanford.
-
-        https://nlp.stanford.edu/software/CRF-NER.shtml
-
-        >>> test = "Deze iets langere test bevat de naam Einstein."
-        >>> p = Stanford(parsed_text=test)
-        >>> p.start()
-        >>> import time
-        >>> time.sleep(0.1)
-        >>> from pprint import pprint
-        >>> pprint(p.join())
-        {'stanford': [{'ne': 'Einstein', 'pos': 37, 'type': 'location'}]}
-    '''
-
-    def __init__(self, group=None, target=None,
-                 name=None, parsed_text={}):
-
-        threading.Thread.__init__(self, group=group, target=target, name=name)
-        self.parsed_text = parsed_text
-
-    def run(self):
-        self.result = {"stanford": []}
-
-        text = self.parsed_text.replace('\n', ' ')
-
-        done = False
-        retry = 0
-        max_retry = 10
-
-        while not done and retry < max_retry:
-            try:
-                conn = telnetlib.Telnet(host=STANFORD_HOST,
-                                        port=STANFORD_PORT,
-                                        timeout=TIMEOUT)
-                done = True
-            except Exception as e:
-                print(e)
-                retry += 1
-
-        if not done:
-            self.result = {"stanford": []}
-            return
-
-        text = text.encode('utf-8') + b'\n'
-        conn.write(text)
-        raw_data = conn.read_all().decode('utf-8')
-        conn.close()
-
-        data = etree.fromstring('<root>' + raw_data + '</root>')
-
-        result = []
-
-        p_tag = ''
-        for item in data.iter():
-            if not item.tag == 'root':
-                if item.tag.split('-')[0] == 'I' and p_tag == item.tag.split('-')[1]:
-                    result[-1]["ne"] = result[-1]["ne"] + ' ' + item.text
-                else:
-                    result.append({"ne": item.text,
-                                   "type": translate(item.tag)})
-                    p_tag = item.tag        
-
-        offset = 0
-        for i, ne in enumerate(result):
-            ne = ne["ne"]
-            pos = self.parsed_text[offset:].find(ne)
-            result[i]["pos"] = pos + offset
-            offset += pos + len(ne)
-
-        self.result = {"stanford": result}
-
-    def join(self):
-        threading.Thread.join(self)
-        return self.result
-
-
-class Polyglot(threading.Thread):
-    '''
-        Wrapper for Polyglot.
-
-        http://polyglot.readthedocs.io/en/latest/index.html
-
-        >>> test = "Deze iets langere test bevat de naam Einstein."
-        >>> p = Polyglot(parsed_text=test)
-        >>> p.start()
-        >>> import time
-        >>> time.sleep(0.1)
-        >>> from pprint import pprint
-        >>> pprint(p.join())
-        {'polyglot': [{'ne': 'Einstein', 'pos': 37, 'type': 'person'}]}
-    '''
-
-    def __init__(self, group=None, target=None,
-                 name=None, parsed_text={}):
-
-        threading.Thread.__init__(self, group=group, target=target, name=name)
-        self.parsed_text = parsed_text
-
-    def run(self):
-        buffer_all = []
-
-        try:
-            text = Text(self.parsed_text, hint_language_code='nl')
-
-            for sent in text.sentences:
-                entity_buffer = []
-                prev_entity_start = -1
-                for entity in sent.entities:
-                    if entity not in entity_buffer:
-                        # For some reason polyglot double's it's output.
-                        if not prev_entity_start == entity.start:
-                            prev_entity_start = entity.start
-                            entity_buffer.append(entity)
-                        else:
-                            entity_buffer.pop()
-                            entity_buffer.append(entity)
-
-                for item in entity_buffer:
-                    buffer_all.append(item)
-
-            result = []
-            for entity in buffer_all:
-                # For there is no sane way to do this.
-                ne = " ".join(ast.literal_eval(entity.__str__()))
-                tag = str(entity.tag.split('-')[1])
-                result.append({"ne": ne,
-                               "type": translate(tag)})
-
-            offset = 0
-            for i, ne in enumerate(result):
-                ne = ne["ne"]
-                pos = self.parsed_text[offset:].find(ne)
-                result[i]["pos"] = pos + offset
-                offset += pos + len(ne)
-        except Exception as e:
-            print(e)
-            result = []
-
-        self.result = {"polyglot": result}
-
-    def join(self):
-        threading.Thread.join(self)
-        return self.result
-
-
-class Spacy(threading.Thread):
-    '''
-        Wrapper for Spacy.
-
-        https://spacy.io/
-
-        >>> test = "Deze iets langere test bevat de naam Einstein."
-        >>> p = Spacy(parsed_text=test)
-        >>> p.start()
-        >>> import time
-        >>> time.sleep(0.1)
-        >>> from pprint import pprint
-        >>> pprint(p.join())
-        {'spacy': [{'ne': 'Einstein', 'pos': 37, 'type': 'person'}]}
-    '''
-
-    def __init__(self, group=None, target=None,
-                 name=None, parsed_text={}):
-
-        threading.Thread.__init__(self, group=group, target=target, name=name)
-        self.parsed_text = parsed_text
-
-    def run(self):
-        result = []
-        try:
-            doc = nlp_spacy(self.parsed_text)
-
-            for ent in doc.ents:
-                result.append({"ne": ent.text, "type": translate(ent.label_)})
-
-            offset = 0
-            for i, ne in enumerate(result):
-                ne = ne["ne"]
-                pos = self.parsed_text[offset:].find(ne)
-                result[i]["pos"] = pos + offset
-                offset += pos + len(ne)
-        except Exception:
-            pass
-
-        self.result = {"spacy": result}
-
-    def join(self):
-        threading.Thread.join(self)
-        return self.result
-
-
-class Spotlight(threading.Thread):
-    '''
-        Wrapper for DBpedia-Spotlight.
-
-        https://www.dbpedia-spotlight.org/
-        >>> t = "Richard Nixon bakt een taart voor zichzelf."
-        >>> p = Spotlight(parsed_text=t)
-        >>> p.start()
-        >>> import time
-        >>> time.sleep(1)
-        >>> from pprint import pprint
-        >>> pprint(p.join())
-        {'spotlight': [{'ne': 'Richard Nixon', 'pos': 0, 'type': 'other'}]}
-    '''
-
-    def __init__(self, group=None, target=None,
-                 name=None, parsed_text={}, confidence='0.9'):
-
-        threading.Thread.__init__(self, group=group, target=target, name=name)
-        self.parsed_text = parsed_text
-        self.confidence = confidence
-
-    def run(self):
-        data = {'text': self.parsed_text,
-                'confidence': str(self.confidence)}
-
-        url = 'http://'
-        url += SPOTLIGHT_HOST
-        url += ':' + SPOTLIGHT_PORT
-        url += SPOTLIGHT_PATH
-
-        header = {"Accept": "application/json"}
-
-        done = False
-        retry = 0
-        max_retry = 10
-
-        while not done and retry < max_retry:
-            try:
-                response = requests.get(url,
-                                        params=data,
-                                        headers=header,
-                                        timeout=TIMEOUT)
-
-                data = response.json()
-                result = []
-
-                if data and data.get('Resources'):
-                    for item in data.get('Resources'):
-                        ne = {}
-                        ne["ne"] = item.get('@surfaceForm')
-                        ne["pos"] = int(item.get('@offset'))
-                        ne["type"] = "other"
-                        result.append(ne)
-
-                self.result = {"spotlight": result}
-                done = True
-            except:
-                self.result = {"spotlight": []}
-                retry += 1
-
-
-    def join(self):
-        threading.Thread.join(self)
-        return self.result
+        '''
+            Translate the labels to one-form-fits-all (that is also human-readable).
+        '''
+        if input_str == "ORG":
+            return 'ORGANIZATION'
+        if input_str == "PER":
+            return 'PERSON'
+        if input_str == "MISC":
+            return 'OTHER'
+        if input_str == "LOC":
+            return 'LOCATION'
+        return input_str
 
 
 def intergrate_results(result, source, source_text, context_len):
@@ -490,6 +206,10 @@ def intergrate_results(result, source, source_text, context_len):
 
     for parser in parsers:
         for ne in result.get(parser):
+            # Both spacy and polyglot return abbreviations as type (e.g. PER)
+            # translate these into the same as Stanford (e.g. PERSON)
+            ne_type = translate(ne.get("type"))
+            
             if ne.get("pos") in new_result:
 
                 if parser in new_result[ne.get("pos")]["ner_src"]:
@@ -498,10 +218,10 @@ def intergrate_results(result, source, source_text, context_len):
                 new_result[ne.get("pos")]["count"] += 1
                 new_result[ne.get("pos")]["ner_src"].append(parser)
 
-                if ne.get("type") in new_result[ne.get("pos")]["type"]:
-                    new_result[ne.get("pos")]["type"][ne.get("type")] += 1
+                if ne_type in new_result[ne.get("pos")]["type"]:
+                    new_result[ne.get("pos")]["type"][ne_type] += 1
                 else:
-                    new_result[ne.get("pos")]["type"][ne.get("type")] = 1
+                    new_result[ne.get("pos")]["type"][ne_type] = 1
 
                 if not ne.get("ne") == new_result[ne.get("pos")].get("ne"):
                     new_result[ne.get("pos")]["alt_ne"] = ne.get("ne")
@@ -511,7 +231,7 @@ def intergrate_results(result, source, source_text, context_len):
                     "count": 1,
                     "ne": ne.get("ne"),
                     "ner_src": [parser],
-                    "type": {ne.get("type"): 1}}
+                    "type": {ne_type: 1}}
 
     final_result = []
     for ne in new_result:
@@ -589,7 +309,7 @@ def max_class(input_type={"LOC": 2, "MISC": 3}, pref_type="LOC"):
     return(mc, sure)
 
 
-@application.route('/')
+@api.route('/')
 def index():
     parsers = {"polyglot": Polyglot,
                "spacy": Spacy,
@@ -606,7 +326,7 @@ def index():
         context_len = int(context_len)
 
     if not url:
-        result = {"error": "Missing argument ?url=%s" % EXAMPLE_URL}
+        result = {"error": "Missing argument ?url=%s" % current_app.config.get('EXAMPLE_URL')}
         resp = Response(response=json.dumps(result),
                         mimetype='application/json; charset=utf-8')
         return (resp)
@@ -634,7 +354,22 @@ def index():
                                        context_len))
 
         for p in parsers:
-            tasks.append(parsers[p](parsed_text=parsed_text[part]))
+            if (p == "stanford"):                
+                tasks.append(parsers[p](
+                    current_app.config.get('STANFORD_HOST'), 
+                    current_app.config.get('STANFORD_PORT'), 
+                    current_app.config.get('TIMEOUT'), 
+                    text_input=parsed_text[part]))
+            elif (p == "spotlight"):
+                tasks.append(parsers[p](
+                    current_app.config.get('SPOTLIGHT_HOST'), 
+                    current_app.config.get('SPOTLIGHT_PORT'),
+                    current_app.config.get('TIMEOUT'),
+                    current_app.config.get('SPOTLIGHT_PATH'),
+                    text_input=parsed_text[part]))
+            else:
+                tasks.append(parsers[p](text_input=parsed_text[part]))
+            
             tasks[-1].start()
 
         for p in tasks:
@@ -682,7 +417,7 @@ def ocr_to_dict(url):
 
     while not done:
         try:
-            req = requests.get(url, timeout=TIMEOUT)
+            req = requests.get(url, timeout=current_app.config.get('TIMEOUT'))
             if req.status_code == 200:
                 done = True
             retry += 1
