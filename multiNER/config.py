@@ -16,3 +16,5 @@ SPOTLIGHT_PATH = "/rest/annotate/"
 
 # Timeout for external NER's (stanford, spotlight)
 TIMEOUT = 1000
+
+SECRET_KEY = 'topsecret'

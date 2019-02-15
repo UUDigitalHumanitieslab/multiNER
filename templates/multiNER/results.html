@@ -1,0 +1,218 @@
+<h3>Thank you</h3>
+<p><a href="/ner/">Try another one</a></p>
+<p>Your results are in! A total of {{ entities.entities | length }} entities were found.</p>
+
+<table>
+    <tr>
+        <th>Color</th>
+        <th>Type</th>
+    </tr>
+    <tr>
+        <td class='ner_person'></td>
+        <td>Person</td>
+    </tr>
+    <tr>
+        <td class='ner_location'></td>
+        <td>Location</td>
+    </tr>
+    <tr>
+        <td class='ner_organization'></td>
+        <td>Organization</td>
+    </tr>
+    <tr>
+        <td class='ner_other'></td>
+        <td>Other</td>
+    </tr>
+</table>
+<br />
+<br />
+<h3>The text</h3>
+<div id="entityWrapper" class="block">
+
+</div>
+<p><a href="/ner/">Try another one</a></p>
+<br />
+<br />
+<h3>And the raw json:</h3>
+<p class="block">{{ entities | tojson | safe}}</p>
+<p><a href="/ner/">Try another one</a></p>
+
+<!-- Let python create table: these are cut from the DOM and pasted into the tooltips (i.e. per entity) -->
+{% for entity in entities.entities %}
+<table id={{entity.pos}} class="hide">
+    <tr>
+        <td>Named entity</td>
+        <td>{{entity.ne}}</td>
+    </tr>
+    {% if entity.alt_ne %}
+    <tr>
+        <td>Alternative named entity</td>
+        <td>{{entity.alt_ne}}</td>
+    </tr>
+    {% endif %}
+    <tr>
+        <td>Count</td>
+        <td>{{entity.count}}</td>
+    </tr>
+    <tr>
+        <td>Type</td>
+        <td>{{entity.type}}</td>
+    </tr>
+    <tr>
+        <td>Type certainty</td>
+        <td>{{entity.type_certainty}}</td>
+    </tr>
+    {% if entity.types | length > 1 %}
+    <tr>
+        <td>Types</td>
+        <td>{{entity.types}}</td>
+    </tr>
+    {% endif %}
+    <tr>
+        <td>Sources</td>
+        <td>{{entity.ner_src}}</td>
+    </tr>
+    <tr>
+        <td>Left context</td>
+        <td>{{entity.left_context}}</td>
+    </tr>
+    <tr>
+        <td>Right context</td>
+        <td>{{entity.right_context}}</td>
+    </tr>
+</table>
+{% endfor %}
+
+<script>
+    var text = htmlDecode('{{ text }}');
+    var entities = JSON.parse('{{ entities  | tojson | safe }}').entities
+
+    var entityWrapper = document.getElementById('entityWrapper');
+    entityWrapper.innerHTML = highlight_entities(text, entities)
+
+    function highlight_entities(text, entities) {
+        if (!entities) return;
+
+        // ensure highest index is in first position 
+        let sortedNamedEntities = entities.sort((a, b) => b.pos - a.pos)
+
+        let withReplacements = text;
+
+        for (let sne of sortedNamedEntities) {
+            withReplacements = this.insertNamedEntityTag(withReplacements, sne);
+        }
+
+        // Use this if the string is not passed through the highlight pipe
+        // return this.sanitizer.bypassSecurityTrustHtml(highlightedText);
+        return withReplacements;
+    }
+
+    function insertNamedEntityTag(original, namedEntity) {
+        let cssClass = '';
+
+        if (namedEntity.type['ORGANIZATION'] === 1) {
+            cssClass = 'ner_organization';
+        } else if (namedEntity.type['PERSON'] == 1) {
+            cssClass = 'ner_person';
+        } else if (namedEntity.type['LOCATION'] === 1) {
+            cssClass = 'ner_location';
+        } else {
+            cssClass = "ner_other";
+        }
+
+        if (cssClass.length > 0) {
+            let tagged = `<span class="${cssClass} tooltip">${namedEntity.ne}<span class="tooltiptext">${getTable(namedEntity.pos)}</span></span>`
+            return this.replaceAt(original, tagged, namedEntity)
+        }
+        return original;
+    }
+
+    function getTable(entityPos) {
+        var table = document.getElementById(entityPos);
+        table.parentElement.removeChild(table)
+        table.classList.remove("hide");
+        return table.outerHTML;
+    }
+
+    function replaceAt(original, replacement, namedEntity) {
+        console.log(original)
+
+        var left = original.substr(0, namedEntity.pos);
+        console.log(left)
+        var right = original.substr(namedEntity.pos + namedEntity.ne.length);
+        console.log(right)
+        return left + replacement + right;
+    }
+
+    function htmlDecode(input) {
+        var e = document.createElement('div');
+        e.innerHTML = input;
+        // handle case of empty input
+        return e.childNodes.length === 0 ? "" : e.childNodes[0].nodeValue;
+    }
+</script>
+<style>
+    .block {
+        border: 1px solid black;
+        padding: 5px;
+        min-height: 75px;
+    }
+
+    .ner_multiple {
+        background-color: red;
+    }
+
+    .ner_other {
+        background-color: lightblue;
+    }
+
+    .ner_person {
+        background-color: greenyellow;
+    }
+
+    .ner_location {
+        background-color: #ffb3ff;
+    }
+
+    .ner_organization {
+        background-color: yellow;
+    }
+
+    .hide {
+        visibility: hidden;
+    }
+
+    /* Tooltip container */
+    .tooltip {
+        position: relative;
+        display: inline-block;
+        border-bottom: 1px dotted black;
+        /* If you want dots under the hoverable text */
+    }
+
+    /* Tooltip text */
+    .tooltip .tooltiptext {
+        visibility: hidden;
+        background-color: fff;
+        color: black;
+        text-align: center;
+        padding: 5px 0;
+        border-radius: 6px;
+
+        /* Position the tooltip text - see examples below! */
+        position: absolute;
+        top: -125px;
+        z-index: 1;
+    }
+
+    /* Show the tooltip text when you mouse over the tooltip container */
+    .tooltip:hover .tooltiptext {
+        visibility: visible;
+    }
+
+    table,
+    th,
+    td {
+        border: 1px solid black;
+    }
+</style>

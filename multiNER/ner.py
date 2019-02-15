@@ -110,7 +110,7 @@ import lxml.html
 import requests
 import operator
 
-from flask import request, Response, current_app, Blueprint
+from flask import request, Response, current_app, Blueprint, render_template, flash, redirect
 from lxml import etree
 
 from corpora import times_test
@@ -119,7 +119,83 @@ from ner_packages.spotlight import Spotlight
 from ner_packages.spacy import Spacy
 from ner_packages.polyglot import Polyglot
 
-api = Blueprint('', __name__)
+
+def find_entities(text, language, context_len = 5):
+    parsers = {"polyglot": Polyglot,
+               "spacy": Spacy,
+               "spotlight": Spotlight,
+               "stanford": Stanford}
+
+    # TODO: move KB logic to view and implement an API call to handle url functionality    
+    # try:
+        
+    #     # parsed_text = ocr_to_dict(url)
+    # except Exception:
+    #     # result = {"error": "Failed to fetch %s" % url}
+    #     resp = Response(response=json.dumps(result),
+    #                     mimetype='application/json; charset=utf-8')
+    #     return (resp)
+
+    result_all = {}
+
+    fresult = []
+    for part in text:
+        result = {}
+        tasks = []
+
+        # if manual:
+        #     fresult.append(manual_find(manual,
+        #                                parsed_text[part],
+        #                                part,
+        #                                context_len))
+
+        for p in parsers:
+            if (p == "stanford"):                
+                tasks.append(parsers[p](
+                    current_app.config.get('STANFORD_HOST'), 
+                    current_app.config.get('STANFORD_PORT'), 
+                    current_app.config.get('TIMEOUT'), 
+                    text_input=text[part]))
+            elif (p == "spotlight"):
+                tasks.append(parsers[p](
+                    current_app.config.get('SPOTLIGHT_HOST'), 
+                    current_app.config.get('SPOTLIGHT_PORT'),
+                    current_app.config.get('TIMEOUT'),
+                    current_app.config.get('SPOTLIGHT_PATH'),
+                    text_input=text[part]))
+            else:
+                tasks.append(parsers[p](text_input=text[part]))
+            
+            tasks[-1].start()
+
+        for p in tasks:
+            ner_result = p.join()
+            result[list(ner_result)[0]] = ner_result[list(ner_result)[0]]
+
+        result_all[part] = intergrate_results(result,
+                                              part,
+                                              text[part],
+                                              context_len)
+
+    for part in result_all:
+        if result_all[part]:
+            for item in result_all[part]:
+                fresult.append(item)
+
+    result = {"entities": fresult}
+
+    # result = json.dumps({"entities": fresult,
+    #                      "text": parsed_text})
+
+    TEST_OUTPUT = '/home/alexhebing/Projects/placenamedisambiguation/test_files/output/entities.json'
+    with open(TEST_OUTPUT, 'w+') as file:    
+        file.write(json.dumps({"entities": fresult}, indent=4, sort_keys=True))
+
+    resp = Response(response=result,
+                    mimetype='application/json; charset=utf-8')
+
+    return (result)
+
 
 
 def context(text_org, ne, pos, context=5):
@@ -307,98 +383,6 @@ def max_class(input_type={"LOC": 2, "MISC": 3}, pref_type="LOC"):
         sure = 4
 
     return(mc, sure)
-
-
-@api.route('/')
-def index():
-    parsers = {"polyglot": Polyglot,
-               "spacy": Spacy,
-               "spotlight": Spotlight,
-               "stanford": Stanford}
-
-    url = request.args.get('url')
-    manual = request.args.get('ne')
-    context_len = request.args.get('context')
-
-    if not context_len:
-        context_len = 5
-    else:
-        context_len = int(context_len)
-
-    if not url:
-        result = {"error": "Missing argument ?url=%s" % current_app.config.get('EXAMPLE_URL')}
-        resp = Response(response=json.dumps(result),
-                        mimetype='application/json; charset=utf-8')
-        return (resp)
-
-    try:
-        parsed_text = times_test.get_corpus()        
-        # parsed_text = ocr_to_dict(url)
-    except Exception:
-        result = {"error": "Failed to fetch %s" % url}
-        resp = Response(response=json.dumps(result),
-                        mimetype='application/json; charset=utf-8')
-        return (resp)
-
-    result_all = {}
-
-    fresult = []
-    for part in parsed_text:
-        result = {}
-        tasks = []
-
-        if manual:
-            fresult.append(manual_find(manual,
-                                       parsed_text[part],
-                                       part,
-                                       context_len))
-
-        for p in parsers:
-            if (p == "stanford"):                
-                tasks.append(parsers[p](
-                    current_app.config.get('STANFORD_HOST'), 
-                    current_app.config.get('STANFORD_PORT'), 
-                    current_app.config.get('TIMEOUT'), 
-                    text_input=parsed_text[part]))
-            elif (p == "spotlight"):
-                tasks.append(parsers[p](
-                    current_app.config.get('SPOTLIGHT_HOST'), 
-                    current_app.config.get('SPOTLIGHT_PORT'),
-                    current_app.config.get('TIMEOUT'),
-                    current_app.config.get('SPOTLIGHT_PATH'),
-                    text_input=parsed_text[part]))
-            else:
-                tasks.append(parsers[p](text_input=parsed_text[part]))
-            
-            tasks[-1].start()
-
-        for p in tasks:
-            ner_result = p.join()
-            result[list(ner_result)[0]] = ner_result[list(ner_result)[0]]
-
-        result_all[part] = intergrate_results(result,
-                                              part,
-                                              parsed_text[part],
-                                              context_len)
-
-    for part in result_all:
-        if result_all[part]:
-            for item in result_all[part]:
-                fresult.append(item)
-
-    result = json.dumps({"entities": fresult})
-
-    # result = json.dumps({"entities": fresult,
-    #                      "text": parsed_text})
-
-    TEST_OUTPUT = '/home/alexhebing/Projects/placenamedisambiguation/test_files/output/entities.json'
-    with open(TEST_OUTPUT, 'w+') as file:    
-        file.write(json.dumps({"entities": fresult}, indent=4, sort_keys=True))
-
-    resp = Response(response=result,
-                    mimetype='application/json; charset=utf-8')
-
-    return (resp)
 
 
 def ocr_to_dict(url):
