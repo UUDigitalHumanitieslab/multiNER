@@ -124,30 +124,14 @@ def find_entities(text, language, context_len = 5):
     parsers = {"polyglot": Polyglot,
                "spacy": Spacy,
                "spotlight": Spotlight,
-               "stanford": Stanford}
-
-    # TODO: move KB logic to view and implement an API call to handle url functionality    
-    # try:
-        
-    #     # parsed_text = ocr_to_dict(url)
-    # except Exception:
-    #     # result = {"error": "Failed to fetch %s" % url}
-    #     resp = Response(response=json.dumps(result),
-    #                     mimetype='application/json; charset=utf-8')
-    #     return (resp)
+               "stanford": Stanford}  
 
     result_all = {}
-
-    fresult = []
+    fresult = {} 
+    
     for part in text:
         result = {}
         tasks = []
-
-        # if manual:
-        #     fresult.append(manual_find(manual,
-        #                                parsed_text[part],
-        #                                part,
-        #                                context_len))
 
         for p in parsers:
             if (p == "stanford"):                
@@ -164,7 +148,7 @@ def find_entities(text, language, context_len = 5):
                     current_app.config.get('SPOTLIGHT_PATH'),
                     text_input=text[part]))
             else:
-                tasks.append(parsers[p](text_input=text[part]))
+                tasks.append(parsers[p](text_input=text[part], language=language))
             
             tasks[-1].start()
 
@@ -172,15 +156,19 @@ def find_entities(text, language, context_len = 5):
             ner_result = p.join()
             result[list(ner_result)[0]] = ner_result[list(ner_result)[0]]
 
-        result_all[part] = intergrate_results(result,
+        result_all[part] = integrate_results(result,
                                               part,
                                               text[part],
                                               context_len)
 
     for part in result_all:
         if result_all[part]:
+            part_items = []
+
             for item in result_all[part]:
-                fresult.append(item)
+                part_items.append(item)
+                
+            fresult[part] = part_items
 
     result = {"entities": fresult}
 
@@ -190,10 +178,7 @@ def find_entities(text, language, context_len = 5):
     TEST_OUTPUT = '/home/alexhebing/Projects/placenamedisambiguation/test_files/output/entities.json'
     with open(TEST_OUTPUT, 'w+') as file:    
         file.write(json.dumps({"entities": fresult}, indent=4, sort_keys=True))
-
-    resp = Response(response=result,
-                    mimetype='application/json; charset=utf-8')
-
+    
     return (result)
 
 
@@ -247,7 +232,7 @@ def translate(input_str):
         return input_str
 
 
-def intergrate_results(result, source, source_text, context_len):
+def integrate_results(result, source, source_text, context_len):
     new_result = {}
     res = {}
 
@@ -341,34 +326,6 @@ def intergrate_results(result, source, source_text, context_len):
     return final_result
 
 
-def manual_find(input_str, source_text, source, context_len):
-    '''
-        Find occurrence of an 'ne' and
-        get the left and right context.
-    '''
-
-    result = {}
-
-    pos = source_text.find(input_str)
-    result["pos"] = pos
-    result["ne"] = input_str
-    result["source"] = source
-    result["type"] = 'manual'
-
-    if not pos == -1:
-        result["left_context"],
-        result["right_context"],
-        result["ne_context"] = context(source_text,
-                                       input_str,
-                                       pos,
-                                       context_len)
-    else:
-        result["left_context"] = result["right_context"] = ''
-        result["ne_context"] = input_str
-
-    return result
-
-
 def max_class(input_type={"LOC": 2, "MISC": 3}, pref_type="LOC"):
     mc = max(input_type, key=input_type.get)
 
@@ -383,65 +340,6 @@ def max_class(input_type={"LOC": 2, "MISC": 3}, pref_type="LOC"):
         sure = 4
 
     return(mc, sure)
-
-
-def ocr_to_dict(url):
-    '''
-        Fetch some OCR from the KB / Depher newspaper collection,
-        remove the XML-tags, and put it into a dictionary:
-
-        >>> EXAMPLE_URL = "http://resolver.kb.nl/resolve?"
-        >>> EXAMPLE_URL += "urn=ddd:010381561:mpeg21:a0049:ocr"
-        >>> ocr_to_dict(EXAMPLE_URL).get("title")
-        'EERSTE HOOFDSTUK'
-    '''
-
-    done = False
-    retry = 0
-
-    while not done:
-        try:
-            req = requests.get(url, timeout=current_app.config.get('TIMEOUT'))
-            if req.status_code == 200:
-                done = True
-            retry += 1
-            if retry > 50:
-                done = True
-        except Exception:
-            done = False
-
-    text = req.content
-    text = text.decode('utf-8')
-
-    parser = lxml.etree.XMLParser(ns_clean=False,
-                                  recover=True,
-                                  encoding='utf-8')
-
-    xml = lxml.etree.fromstring(text.encode(), parser=parser)
-
-    parsed_text = {}
-
-    for item in xml.iter():
-        if not item.text:
-            continue
-
-        item.text = item.text.replace('&', '&amp;')
-        item.text = item.text.replace('>', '&gt;')
-        item.text = item.text.replace('<', '&lt;')
-
-        if item.tag == 'title':
-            if "title" not in parsed_text:
-                parsed_text["title"] = []
-            parsed_text["title"].append(item.text)
-        else:
-            if "p" not in parsed_text:
-                parsed_text["p"] = []
-            parsed_text["p"].append(item.text)
-
-    for part in parsed_text:
-        parsed_text[part] = "".join(parsed_text[part])
-
-    return parsed_text
 
 
 def test_all():

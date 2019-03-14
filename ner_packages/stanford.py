@@ -42,11 +42,10 @@ class Stanford(threading.Thread):
 
         while not done and retry < max_retry:
             try:
-                conn = telnetlib.Telnet(host=self.host,
-                                        port=self.port,
-                                        timeout=self.timeout)
+                conn = telnetlib.Telnet(host=self.host, port=self.port, timeout=self.timeout)
                 done = True
             except Exception as e:
+                print("stanford error:")
                 print(e)
                 retry += 1
 
@@ -65,14 +64,13 @@ class Stanford(threading.Thread):
 
         p_tag = ''
         for item in data.iter():
-            if not item.tag == 'root':
+            if not item.tag == 'root':                
                 if item.tag.split('-')[0] == 'I' and p_tag == item.tag.split('-')[1]:
                     result[-1]["ne"] = result[-1]["ne"] + ' ' + item.text
                 else:
                     result.append({"ne": item.text,
-                                   "type": item.tag})
-                    p_tag = item.tag
-
+                                   "type": self.translate(item.tag)})
+                    p_tag = item.tag.split('-')[1]
                    
 
         offset = 0
@@ -83,6 +81,13 @@ class Stanford(threading.Thread):
             offset += pos + len(ne)
 
         self.result = {"stanford": result}
+
+
+    def translate(self, stanford_type):
+        if stanford_type == "I-PER" or stanford_type == "B-PER":
+            return "PERSON"
+        if stanford_type == "I-LOC" or stanford_type == "B-LOC":
+            return "LOCATION"
 
 
     def join(self):

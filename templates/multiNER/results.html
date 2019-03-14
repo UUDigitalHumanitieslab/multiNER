@@ -38,7 +38,7 @@
 <p><a href="/ner/">Try another one</a></p>
 
 <!-- Let python create table: these are cut from the DOM and pasted into the tooltips (i.e. per entity) -->
-{% for entity in entities.entities %}
+{% for entity in entities.entities.text %}
 <table id={{entity.pos}} class="hide">
     <tr>
         <td>Named entity</td>
@@ -85,20 +85,26 @@
 
 <script>
     var text = htmlDecode('{{ text }}');
-    var entities = JSON.parse('{{ entities  | tojson | safe }}').entities
+    var entities = JSON.parse('{{ entities  | tojson | safe }}').entities.text
 
     var entityWrapper = document.getElementById('entityWrapper');
     entityWrapper.innerHTML = highlight_entities(text, entities)
 
     function highlight_entities(text, entities) {
         if (!entities) return;
-
+        
         // ensure highest index is in first position 
         let sortedNamedEntities = entities.sort((a, b) => b.pos - a.pos)
 
         let withReplacements = text;
 
+        let previous_entity_start_pos = undefined;
+        
         for (let sne of sortedNamedEntities) {
+            sne_end_pos = sne.pos + sne.ne.length
+            
+            if (previous_entity_start_pos && sne_end_pos > previous_entity_start_pos) continue;
+            previous_entity_start_pos = sne.pos;
             withReplacements = this.insertNamedEntityTag(withReplacements, sne);
         }
 
@@ -106,7 +112,7 @@
         // return this.sanitizer.bypassSecurityTrustHtml(highlightedText);
         return withReplacements;
     }
-
+    
     function insertNamedEntityTag(original, namedEntity) {
         let cssClass = '';
 
@@ -121,7 +127,7 @@
         }
 
         if (cssClass.length > 0) {
-            let tagged = `<span class="${cssClass} tooltip">${namedEntity.ne}<span class="tooltiptext">${getTable(namedEntity.pos)}</span></span>`
+            let tagged = `<span class="${cssClass} tooltip">${namedEntity.ne}<span class="tooltiptext">${getTable(namedEntity.pos)}</span></span>`            
             return this.replaceAt(original, tagged, namedEntity)
         }
         return original;
@@ -135,12 +141,8 @@
     }
 
     function replaceAt(original, replacement, namedEntity) {
-        console.log(original)
-
         var left = original.substr(0, namedEntity.pos);
-        console.log(left)
         var right = original.substr(namedEntity.pos + namedEntity.ne.length);
-        console.log(right)
         return left + replacement + right;
     }
 

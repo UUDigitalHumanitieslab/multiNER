@@ -40,9 +40,9 @@ class Spotlight(threading.Thread):
 
         url = 'http://'
         url += self.host
-        url += ':' + self.port
+        if self.port: url += ':' + self.port
         url += self.path
-
+        
         header = {"Accept": "application/json"}
 
         done = False
@@ -55,7 +55,7 @@ class Spotlight(threading.Thread):
                                         params=data,
                                         headers=header,
                                         timeout=self.timeout)
-
+                
                 data = response.json()
                 result = []
 

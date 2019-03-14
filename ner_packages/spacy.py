@@ -2,8 +2,6 @@
 import threading
 import spacy
 
-# Preload Dutch data.
-nlp_spacy = spacy.load('nl')
 
 '''
 MISC PER ORG LOC
@@ -23,16 +21,23 @@ class Spacy(threading.Thread):
         >>> pprint(p.join())
         {'spacy': [{'ne': 'Einstein', 'pos': 37, 'type': 'person'}]}
     '''
+    # Preload Dutch data.
+    nlp_spacy = None
 
     def __init__(self, language='en', text_input=''):
-        threading.Thread.__init__(self)
-        self.language = language
+        threading.Thread.__init__(self)        
         self.text_input = text_input
+        self.set_language(language)
+
+
+    def set_language(self, language):
+        self.nlp_spacy = spacy.load(language)
+
 
     def run(self):
         result = []
         try:
-            doc = nlp_spacy(self.text_input)
+            doc = self.nlp_spacy(self.text_input)
 
             for ent in doc.ents:
                 result.append({"ne": ent.text, "type": ent.label_})
@@ -43,7 +48,8 @@ class Spacy(threading.Thread):
                 pos = self.text_input[offset:].find(ne)
                 result[i]["pos"] = pos + offset
                 offset += pos + len(ne)
-        except Exception:
+        except Exception as e:
+            print(e)
             pass
 
         self.result = {"spacy": result}
