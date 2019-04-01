@@ -34,6 +34,7 @@ class Stanford(threading.Thread):
     def run(self):        
         self.result = {"stanford": []}
 
+        if self.text_input is None: return
         text = self.text_input.replace('\n', ' ')
 
         done = False

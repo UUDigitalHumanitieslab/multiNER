@@ -20,8 +20,7 @@ class Spacy(threading.Thread):
         >>> from pprint import pprint
         >>> pprint(p.join())
         {'spacy': [{'ne': 'Einstein', 'pos': 37, 'type': 'person'}]}
-    '''
-    # Preload Dutch data.
+    '''    
     nlp_spacy = None
 
     def __init__(self, language='en', text_input=''):

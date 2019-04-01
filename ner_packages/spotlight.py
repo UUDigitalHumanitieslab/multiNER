@@ -36,6 +36,9 @@ class Spotlight(threading.Thread):
         
 
     def run(self):
+        self.result = {"spotlight": []}
+
+        if self.text_input is None: return
         data = {'text': self.text_input, 'confidence': str(self.confidence)}
 
         url = 'http://'

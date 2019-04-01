@@ -107,9 +107,7 @@
             previous_entity_start_pos = sne.pos;
             withReplacements = this.insertNamedEntityTag(withReplacements, sne);
         }
-
-        // Use this if the string is not passed through the highlight pipe
-        // return this.sanitizer.bypassSecurityTrustHtml(highlightedText);
+        
         return withReplacements;
     }
     
