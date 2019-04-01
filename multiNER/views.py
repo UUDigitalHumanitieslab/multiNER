@@ -32,7 +32,7 @@ def collect_from_text():
     if not 'text' in jsonData:
         abort(400, 'text is required')
     
-    # extract input
+    # extract input and validate
     text = jsonData['text']
 
     text_length = len(text)    
@@ -48,6 +48,9 @@ def collect_from_text():
         title = None
     else:
         title = jsonData['title']
+        title_length = len(title)    
+        if title_length > 7000:
+            abort(400, 'Title cannot be longer than 7000 characters, found {0}'.format(title_length))
 
     if not 'context_len' in jsonData:
         context_len = 5
