@@ -35,7 +35,9 @@ def collect_from_text():
     # extract input
     text = jsonData['text']
 
-    # TODO: validate text? length / encoding / whatever
+    text_length = len(text)    
+    if text_length > 7000:
+        abort(400, 'Text cannot be longer than 7000 characters, found {0}'.format(text_length))
 
     if not 'language' in jsonData:
         language = 'nl'
