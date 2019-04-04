@@ -3,7 +3,9 @@ requests
 lxml
 polyglot
 flask
+flask-wtf
 pyicu
 pycld2
 morfessor
 gunicorn
+
