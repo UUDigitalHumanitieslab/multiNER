@@ -113,7 +113,6 @@ import operator
 from flask import request, Response, current_app, Blueprint, render_template, flash, redirect
 from lxml import etree
 
-from corpora import times_test
 from ner_packages.stanford import Stanford
 from ner_packages.spotlight import Spotlight
 from ner_packages.spacy import Spacy
@@ -172,12 +171,10 @@ def find_entities(text, language, context_len = 5):
 
     result = {"entities": fresult}
 
-    # result = json.dumps({"entities": fresult,
-    #                      "text": parsed_text})
-
-    TEST_OUTPUT = '/home/alexhebing/Projects/placenamedisambiguation/test_files/output/entities.json'
-    with open(TEST_OUTPUT, 'w+') as file:    
-        file.write(json.dumps({"entities": fresult}, indent=4, sort_keys=True))
+    # Activate for local testing purposes when necessary (and change path)
+    # TEST_OUTPUT = '/home/alexhebing/Projects/placenamedisambiguation/test_files/output/entities.json'
+    # with open(TEST_OUTPUT, 'w+') as file:    
+    #     file.write(json.dumps({"entities": fresult}, indent=4, sort_keys=True))
     
     return (result)
 
