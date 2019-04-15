@@ -2,7 +2,8 @@
 import threading
 import spacy
 import en_core_web_sm
-
+import nl_core_news_sm
+import it_core_news_sm
 
 '''
 MISC PER ORG LOC
