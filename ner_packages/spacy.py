@@ -30,7 +30,15 @@ class Spacy(threading.Thread):
 
 
     def set_language(self, language):
-        self.nlp_spacy = spacy.load(language)
+        if (language == 'en'):
+            self.nlp_spacy = spacy.load('en_core_web_sm')
+        elif (language == 'nl'):
+            self.nlp_spacy = spacy.load('nl_core_news_sm')
+        elif (language == 'it'):
+            self.nlp_spacy = spacy.load('it_core_news_sm')
+        else:
+            raise ValueError('language {0} is not supported'.format(language))
+        
 
 
     def run(self):
