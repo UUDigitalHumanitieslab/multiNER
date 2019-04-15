@@ -32,7 +32,7 @@ class Polyglot(threading.Thread):
         buffer_all = []
 
         try:
-            text = Text(self.text_input, hint_language_code='nl')
+            text = Text(self.text_input, hint_language_code=self.language)
 
             for sent in text.sentences:
                 entity_buffer = []
@@ -65,6 +65,7 @@ class Polyglot(threading.Thread):
                 result[i]["pos"] = pos + offset
                 offset += pos + len(ne)
         except Exception as e:
+            print('polyglot error:')
             print(e)
             result = []
 
