@@ -17,12 +17,10 @@ class Spotlight(threading.Thread):
         {'spotlight': [{'ne': 'Richard Nixon', 'pos': 0, 'type': 'other'}]}
     '''
 
-    def __init__(self, host, port, timeout, path, language='en', text_input='', confidence='0.9'):
-        threading.Thread.__init__(self)        
-        self.host = host
-        self.port = port
+    def __init__(self, url, timeout, language='en', text_input='', confidence='0.9'):
+        threading.Thread.__init__(self)
+        self.url = url
         self.timeout = timeout
-        self.path = path
         self.language = language
         self.text_input = text_input        
         self.confidence = confidence
@@ -40,11 +38,6 @@ class Spotlight(threading.Thread):
 
         if self.text_input is None: return
         data = {'text': self.text_input, 'confidence': str(self.confidence)}
-
-        url = 'http://'
-        url += self.host
-        if self.port: url += ':' + self.port
-        url += self.path
         
         header = {"Accept": "application/json"}
 
@@ -54,7 +47,7 @@ class Spotlight(threading.Thread):
 
         while not done and retry < max_retry:
             try:
-                response = requests.get(url,
+                response = requests.get(self.url,
                                         params=data,
                                         headers=header,
                                         timeout=self.timeout)

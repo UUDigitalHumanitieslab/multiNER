@@ -25,10 +25,11 @@ class Stanford(threading.Thread):
     def __init__(self, host, port, timeout, language='en', text_input=''):                
         threading.Thread.__init__(self)
         self.host = host
-        self.port = port
-        self.language = language
         self.timeout = timeout
         self.text_input = text_input
+        self.port = port
+        self.language = language
+        
         
 
     def run(self):        
@@ -43,13 +44,14 @@ class Stanford(threading.Thread):
 
         while not done and retry < max_retry:
             try:
+                
                 conn = telnetlib.Telnet(host=self.host, port=self.port, timeout=self.timeout)
                 done = True
             except Exception as e:
                 print("stanford error:")
                 print(e)
                 retry += 1
-
+            
         if not done:
             self.result = {"stanford": []}
             return

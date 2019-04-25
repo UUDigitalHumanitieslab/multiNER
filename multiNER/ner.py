@@ -119,47 +119,64 @@ from ner_packages.spacy import Spacy
 from ner_packages.polyglot import Polyglot
 
 
-def find_entities(text, language, context_len = 5):
+def get_stanford_port(language):
+    if language == 'nl':
+        return current_app.config.get('STANFORD_NL_PORT')
+    elif language == 'en':
+        return current_app.config.get('STANFORD_EN_PORT')
+    
+    raise ValueError("Language '{}' is not supported by the Stanford NER package".format(language))
+
+
+def get_spotlight_url(language):
+    if language == 'nl':
+        return current_app.config.get('SPOTLIGHT_NL_URL')
+    elif language == 'en':
+        return current_app.config.get('SPOTLIGHT_EN_URL')
+    elif language == 'it':
+        return current_app.config.get('SPOTLIGHT_IT_URL')
+    
+    raise ValueError("Language '{}' is not supported by the Spotlight NER package".format(language))
+
+
+def find_entities(input, language, context_len = 5):
     parsers = {"polyglot": Polyglot,
                "spacy": Spacy,
                "spotlight": Spotlight,
-               "stanford": Stanford}  
-
-    result_all = {}
-    fresult = {} 
+               "stanford": Stanford}
     
-    for part in text:
+    result_all = {}
+    fresult = {}
+    
+    for part in input:
         result = {}
         tasks = []
 
         for p in parsers:
-            if (p == "stanford"):                
+            if (p == "stanford"):
                 tasks.append(parsers[p](
                     current_app.config.get('STANFORD_HOST'), 
-                    current_app.config.get('STANFORD_PORT'), 
+                    get_stanford_port(language), 
                     current_app.config.get('TIMEOUT'), 
-                    text_input=text[part]))
+                    text_input=input[part]))
             elif (p == "spotlight"):
                 tasks.append(parsers[p](
-                    current_app.config.get('SPOTLIGHT_HOST'), 
-                    current_app.config.get('SPOTLIGHT_PORT'),
+                    get_spotlight_url(language),
                     current_app.config.get('TIMEOUT'),
-                    current_app.config.get('SPOTLIGHT_PATH'),
-                    text_input=text[part]))
+                    text_input=input[part]))
             else:
-                tasks.append(parsers[p](text_input=text[part], language=language))
+                tasks.append(parsers[p](text_input=input[part], language=language))
             
             tasks[-1].start()
 
-        for p in tasks:
-            ner_result = p.join()
-            result[list(ner_result)[0]] = ner_result[list(ner_result)[0]]
 
-        result_all[part] = integrate_results(result,
-                                              part,
-                                              text[part],
-                                              context_len)
+        for task in tasks:
+            for name, value in task.join().items():
+                result[name] = value
 
+        result_all[part] = integrate_results(result, part, input[part], context_len)
+
+    
     for part in result_all:
         if result_all[part]:
             part_items = []
