@@ -1,6 +1,6 @@
 from .spacy import Spacy
 
-from .named_entity import NamedEntity
+from multiNER.named_entity_kit import NamedEntity
 
 def test_parse_response(): 
     s = get_instance()

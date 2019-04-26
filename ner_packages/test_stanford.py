@@ -1,7 +1,7 @@
 from .stanford import Stanford
 from lxml import etree
 
-from .named_entity import NamedEntity
+from multiNER.named_entity_kit import NamedEntity
 
 def test_convert():
     s = get_instance()

@@ -2,7 +2,7 @@
 import threading
 import requests
 
-from .named_entity import NamedEntity
+from multiNER.named_entity_kit import NamedEntity
 
 from textwrap import wrap
 

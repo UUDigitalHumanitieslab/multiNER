@@ -3,7 +3,7 @@ import ast
 import threading
 from polyglot.text import Text
 
-from .named_entity import NamedEntity
+from multiNER.named_entity_kit import NamedEntity
 
 
 class Polyglot(threading.Thread):

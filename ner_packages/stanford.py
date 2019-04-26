@@ -3,7 +3,7 @@ import telnetlib
 from lxml import etree
 import threading
 
-from .named_entity import NamedEntity
+from multiNER.named_entity_kit import NamedEntity
 
 
 class Stanford(threading.Thread):

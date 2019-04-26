@@ -1,6 +1,6 @@
 from .polyglot import Polyglot
 
-from .named_entity import NamedEntity
+from multiNER.named_entity_kit import NamedEntity
 
 def test_convert():
     p = get_instance()

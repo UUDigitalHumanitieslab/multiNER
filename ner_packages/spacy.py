@@ -5,7 +5,7 @@ import en_core_web_sm
 import nl_core_news_sm
 import it_core_news_sm
 
-from .named_entity import NamedEntity
+from multiNER.named_entity_kit import NamedEntity
 
 class Spacy(threading.Thread):
     '''
