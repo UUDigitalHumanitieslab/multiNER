@@ -4,6 +4,8 @@ import requests
 
 from .named_entity import NamedEntity
 
+from textwrap import wrap
+
 
 class Spotlight(threading.Thread):
     '''
@@ -27,13 +29,23 @@ class Spotlight(threading.Thread):
         if self.text_input is None:
             return
         
-        data = self.collect_data
-        self.result = self.parse_response(data)
+        text_chunks = self.get_spotlight_compatible_chunks(self.text_input)        
+        self.result = self.collect_entities(text_chunks)
 
     
-    def collect_data(self):
+    def collect_entities(self, text_chunks):
+        entities = []
+        
+        for chunk in text_chunks:
+            data = self.collect_data(chunk)
+            entities.extend(self.parse_response(data))
+
+        return entities        
+
+    
+    def collect_data(self, text):
         header = {"Accept": "application/json"}
-        params = {'text': self.text_input, 'confidence': str(self.confidence)}
+        params = {'text': text, 'confidence': str(self.confidence)}
 
         done = False
         retry = 0
@@ -56,6 +68,14 @@ class Spotlight(threading.Thread):
 
         return data
 
+    
+    '''
+    Spotlight receives the text as a parameter in the url. Therefore the max_length is limited to around 7000 characters
+    This method cuts the text into pieces that the Spotlight API can handle.
+    '''
+    def get_spotlight_compatible_chunks(self, text, chunk_length = 7000):
+        return wrap(text, chunk_length)
+
 
     def parse_response(self, data):
         entities = []
@@ -69,7 +89,7 @@ class Spotlight(threading.Thread):
                 entities.append(ne)
 
         return entities
-        
+
 
     def parse_type(self, item):
         if "location" in item.get("@types").lower():
