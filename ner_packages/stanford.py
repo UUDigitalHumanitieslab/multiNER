@@ -3,23 +3,14 @@ import telnetlib
 from lxml import etree
 import threading
 
-'''
-PERSON ORGANIZATION LOCATION
-'''
+from .named_entity import NamedEntity
+
+
 class Stanford(threading.Thread):
     '''
         Wrapper for Stanford.
 
-        https://nlp.stanford.edu/software/CRF-NER.shtml
-
-        >>> test = "Deze iets langere test bevat de naam Einstein."
-        >>> p = Stanford(parsed_text=test)
-        >>> p.start()
-        >>> import time
-        >>> time.sleep(0.1)
-        >>> from pprint import pprint
-        >>> pprint(p.join())
-        {'stanford': [{'ne': 'Einstein', 'pos': 37, 'type': 'location'}]}
+        https://nlp.stanford.edu/software/CRF-NER.shtml        
     '''
 
     def __init__(self, host, port, timeout, language='en', text_input=''):                
@@ -33,9 +24,16 @@ class Stanford(threading.Thread):
         
 
     def run(self):        
-        self.result = {"stanford": []}
+        self.result = []
 
         if self.text_input is None: return
+
+        data = self.collect_data()
+        stanford_entities = self.parse_response(data)        
+        self.result = self.convert(stanford_entities)
+
+
+    def collect_data(self):
         text = self.text_input.replace('\n', ' ')
 
         done = False
@@ -44,7 +42,6 @@ class Stanford(threading.Thread):
 
         while not done and retry < max_retry:
             try:
-                
                 conn = telnetlib.Telnet(host=self.host, port=self.port, timeout=self.timeout)
                 done = True
             except Exception as e:
@@ -58,32 +55,56 @@ class Stanford(threading.Thread):
 
         text = text.encode('utf-8') + b'\n'
         conn.write(text)
-        raw_data = conn.read_all().decode('utf-8')        
+        data = conn.read_all().decode('utf-8')        
         conn.close()
 
-        data = etree.fromstring('<root>' + raw_data + '</root>')
+        return data
 
-        result = []
 
-        p_tag = ''
+
+    '''
+    Stanford NER inserts XML tags around the entities it finds. For example: '<B-LOC>Utrecht</B-LOC> en <B-LOC>Gouda</B-LOC>'
+    If an entity consist of multiple parts, it becomes somthing like this: '<B-PER>Jelte</B-PER> <I-PER>van Boheemen</I-PER>'
+    This method parses the response into dictionaries (note that these do not yet include position information)
+    '''
+    def parse_response(self, data):
+        entities = []
+
+        data = etree.fromstring('<root>' + data + '</root>')
+
+        previous_item = None
+        
         for item in data.iter():
-            if not item.tag == 'root':                
-                if item.tag.split('-')[0] == 'I' and p_tag == item.tag.split('-')[1]:
-                    result[-1]["ne"] = result[-1]["ne"] + ' ' + item.text
-                else:
-                    result.append({"ne": item.text,
-                                   "type": self.translate(item.tag)})
-                    p_tag = item.tag.split('-')[1]
-                   
+            if not item.tag == 'root':
+                if not self.is_multitag_item(item, previous_item):
+                    entities.append({"text": item.text, "type": self.translate(item.tag)})
+                    previous_item = item
+                else: # this entity consists of two tags, update previous item
+                    entities[-1]['text'] = previous_item.text + ' ' + item.text
+        
+        return entities
 
+    def is_multitag_item(self, item, previous_item):
+        return item.tag.split('-')[0] == 'I' and previous_item.tag.split('-')[1] == item.tag.split('-')[1]
+
+
+    '''
+    Calculate position and create NamedEntity instances
+    '''
+    def convert(self, stanford_entities):
+        named_entities = []
+        
         offset = 0
-        for i, ne in enumerate(result):
-            ne = ne["ne"]
-            pos = self.text_input[offset:].find(ne)
-            result[i]["pos"] = pos + offset
-            offset += pos + len(ne)
-
-        self.result = {"stanford": result}
+        for se in stanford_entities:
+            text = se["text"]
+            pos = self.text_input[offset:].find(text)
+            position = pos + offset
+            offset += pos + len(text)
+            
+            ne = NamedEntity(text, "stanford", position, se['type'])
+            named_entities.append(ne)
+        
+        return named_entities
 
 
     def translate(self, stanford_type):
