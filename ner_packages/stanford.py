@@ -77,7 +77,7 @@ class Stanford(threading.Thread):
         for item in data.iter():
             if not item.tag == 'root':
                 if not self.is_multitag_item(item, previous_item):
-                    entities.append({"text": item.text, "type": self.translate(item.tag)})
+                    entities.append({"text": item.text, "type": self.parse_type(item.tag)})
                     previous_item = item
                 else: # this entity consists of two tags, update previous item
                     entities[-1]['text'] = previous_item.text + ' ' + item.text
@@ -107,7 +107,7 @@ class Stanford(threading.Thread):
         return named_entities
 
 
-    def translate(self, stanford_type):
+    def parse_type(self, stanford_type):
         if stanford_type == "I-PER" or stanford_type == "B-PER":
             return "PERSON"
         if stanford_type == "I-LOC" or stanford_type == "B-LOC":
