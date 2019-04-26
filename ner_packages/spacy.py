@@ -51,10 +51,19 @@ class Spacy(threading.Thread):
         entities = []
         
         for ent in data.ents:
-            ne = NamedEntity(ent.text, "spacy", ent.start_char, ent.label_)
+            type = self.parse_type(ent.label_)
+            ne = NamedEntity(ent.text, "spacy", ent.start_char, type)
             entities.append(ne)
 
         return entities
+
+    
+    def parse_type(self, spacy_type):
+        if spacy_type == 'LOC':
+            return 'LOCATION'
+        if spacy_type == 'ORG':
+            return 'ORGANIZATION'
+        return spacy_type
 
 
     def join(self):
