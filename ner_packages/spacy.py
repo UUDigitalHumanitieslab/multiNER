@@ -5,23 +5,14 @@ import en_core_web_sm
 import nl_core_news_sm
 import it_core_news_sm
 
-'''
-MISC PER ORG LOC
-'''
+from .named_entity import NamedEntity
+
 class Spacy(threading.Thread):
     '''
         Wrapper for Spacy.
 
         https://spacy.io/
-
-        >>> test = "Deze iets langere test bevat de naam Einstein."
-        >>> p = Spacy(parsed_text=test)
-        >>> p.start()
-        >>> import time
-        >>> time.sleep(0.1)
-        >>> from pprint import pprint
-        >>> pprint(p.join())
-        {'spacy': [{'ne': 'Einstein', 'pos': 37, 'type': 'person'}]}
+       
     '''    
     nlp_spacy = None
 
@@ -40,28 +31,30 @@ class Spacy(threading.Thread):
             self.nlp_spacy = it_core_news_sm.load()
         else:
             raise ValueError('language {0} is not supported'.format(language))
-        
+    
+
+    def run(self):       
+        data = self.collect_data()
+        self.result = self.parse_response(data)
 
 
-    def run(self):
-        result = []
+    def collect_data(self):
         try:
-            doc = self.nlp_spacy(self.text_input)
-
-            for ent in doc.ents:
-                result.append({"ne": ent.text, "type": ent.label_})
-
-            offset = 0
-            for i, ne in enumerate(result):
-                ne = ne["ne"]
-                pos = self.text_input[offset:].find(ne)
-                result[i]["pos"] = pos + offset
-                offset += pos + len(ne)
+            return self.nlp_spacy(self.text_input)
         except Exception as e:
+            print('spacy error')
             print(e)
             pass
 
-        self.result = {"spacy": result}
+    
+    def parse_response(self, data):
+        entities = []
+        
+        for ent in data.ents:
+            ne = NamedEntity(ent.text, "spacy", ent.start_char, ent.label_)
+            entities.append(ne)
+
+        return entities
 
 
     def join(self):
