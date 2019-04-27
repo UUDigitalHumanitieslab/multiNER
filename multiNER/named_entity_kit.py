@@ -29,6 +29,10 @@ class IntegratedNamedEntity():
         return list(self.sources_types.keys())
 
 
+    def was_suggested_by(self, source):
+        return source in self.get_sources()
+
+
     def get_type(self):
         types_counts = self.get_types_counts()
 
@@ -135,3 +139,24 @@ def integrate(named_entities):
             integrated_nes.append(integrated_ne)
 
     return integrated_nes
+
+
+def filter(integrated_named_entities):
+    filtered_ines = []
+    
+    for ine in integrated_named_entities:
+        
+        # was suggested by preferred ner package
+        for p in NER_LEADING_PACKAGES:
+            if ine.was_suggested_by(p):
+                filtered_ines.append(ine)
+                break
+
+        if len(ine.get_sources()) >= NER_OTHER_PACKAGES_MINIMUM:
+            filtered_ines.append(ine)
+
+    return filtered_ines
+
+        
+
+

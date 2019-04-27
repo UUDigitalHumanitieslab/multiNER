@@ -105,6 +105,54 @@ def test_integrate_two_types():
             assert ine.get_type_certainty() == 1
 
 
+def test_filter_leading_packages():
+    named_entities = []
+    
+    index = 1
+    for p in NER_LEADING_PACKAGES:
+        named_entities.append(NamedEntity('Gouda', p, index * 11, 'LOCATION'))
+        index += 1
+    
+    ines = integrate(named_entities)
+    assert len(ines) == len(NER_LEADING_PACKAGES)
+
+    fines = filter(ines)
+    assert len(fines) == len(NER_LEADING_PACKAGES)
+
+    # add one that should be excluded
+    otherne = NamedEntity('Gouda', 'OTHERNERPACKAGE', 1, 'LOCATION')
+    named_entities.append(otherne)
+
+    ines2 = integrate(named_entities)
+    assert len(ines2) == len(NER_LEADING_PACKAGES) + 1
+    
+    fines = filter(ines2)
+    assert len(fines) == len(NER_LEADING_PACKAGES)
+
+
+def test_filter_other_packages_min():
+    named_entities = []
+
+    for index in range(1,4):
+        named_entities.append(NamedEntity('Gouda', 'OTHERNERPACKAGE_{}'.format(index), 11, 'LOCATION'))
+    
+    ines = integrate(named_entities)
+    assert len(ines) == 1
+
+    fines = filter(ines) 
+    assert len(fines) == 1
+
+    #insert one that should be excluded
+    otherne = NamedEntity('Gouda', 'YETOTHERNERPACKAGE', 1, 'LOCATION')
+    named_entities.append(otherne)
+
+    ines2 = integrate(named_entities)
+    assert len(ines2) == 2
+    
+    fines = filter(ines2)
+    assert len(fines) == 1
+
+
 def get_named_entities():
     return [
         NamedEntity('Gouda', 'stanford', 11, 'LOCATION'),
