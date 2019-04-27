@@ -59,6 +59,43 @@ def test_integrated_named_entity_context():
     assert ine.right_context == 'around a named entity that will'
 
 
+def test_integrated_named_entity_alt_text():
+    entities = [
+        NamedEntity('Utrecht University', 'stanford', 10, 'ORGANIZATION'),
+        NamedEntity('Utrecht', 'polyglot', 10, 'LOCATION')
+    ]
+    
+    ines = integrate(entities)
+    assert len(ines) == 1
+
+    expected_type = get_preferred_type(['LOCATION', 'ORGANIZATION'])
+    expected_text = [ne for ne in entities if ne.type == expected_type][0].text
+    expected_alt_text = [ne for ne in entities if not ne.type == expected_type][0].text
+
+    ine = ines[0]
+    assert ine.text == expected_text
+    assert ine.alt_texts == [expected_alt_text]
+    assert ine.get_type() == expected_type    
+    
+
+def test_integrated_named_entity_alt_text_different_start():
+    entities = [
+        NamedEntity('Universiteit Utrecht', 'stanford', 10, 'ORGANIZATION'),
+        NamedEntity('Utrecht', 'polyglot', 24, 'LOCATION')]
+        
+    ines = integrate(entities)
+    assert len(ines) == 1
+
+    expected_type = get_preferred_type(['LOCATION', 'ORGANIZATION'])
+    expected_text = [ne for ne in entities if ne.type == expected_type][0].text
+    expected_alt_text = [ne for ne in entities if not ne.type == expected_type][0].text
+
+    ine = ines[0]
+    assert ine.text == expected_text
+    assert ine.alt_texts == [expected_alt_text]
+    assert ine.get_type() == expected_type
+
+
 def test_integrate():
     entities = get_named_entities()
     actual_ines = integrate(entities)
@@ -162,9 +199,9 @@ def get_named_entities():
         NamedEntity('Utrecht', 'polyglot', 0, 'OTHER'),
         NamedEntity('Utrecht', 'spacy', 0, 'LOCATION'),
         NamedEntity('Utrecht', 'stanford', 0, 'LOCATION'),
-        NamedEntity('John Smith', 'spacy', 15, 'PERSON'),
-        NamedEntity('John Smith', 'stanford', 15, 'PERSON'),
-        NamedEntity('John Smith', 'polyglot', 15, 'OTHER')
+        NamedEntity('John Smith', 'spacy', 25, 'PERSON'),
+        NamedEntity('John Smith', 'stanford', 25, 'PERSON'),
+        NamedEntity('John Smith', 'polyglot', 25, 'OTHER')
     ]
 
 

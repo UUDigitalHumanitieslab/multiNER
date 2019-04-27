@@ -23,6 +23,7 @@ class IntegratedNamedEntity():
         self.start = named_entity.position
         self.end = self.start + len(named_entity.text)
         self.sources_types = { named_entity.source: named_entity.type }
+        self.alt_texts = []
 
 
     def get_sources(self):
@@ -46,7 +47,7 @@ class IntegratedNamedEntity():
                 suggested_types.clear()
                 suggested_types.append(type)
                 max_count = count
-
+        
         return self.get_preferred_type(suggested_types) 
 
 
@@ -93,7 +94,15 @@ class IntegratedNamedEntity():
 
 
     def add(self, named_entity):
+        if not self.text == named_entity.text:            
+            if self.get_preferred_type([self.get_type(), named_entity.type]) == named_entity.type:
+                self.alt_texts.append(self.text)
+                self.text = named_entity.text
+            else:
+                self.alt_texts.append(named_entity.text)
+
         self.sources_types[named_entity.source] = named_entity.type
+        
 
     
     def set_context(self, complete_text, context_len):
@@ -112,13 +121,13 @@ class IntegratedNamedEntity():
 
     def is_equal_to(self, named_entity):
         if isinstance(named_entity, NamedEntity):
-            return self.start == named_entity.position
+            # return self.start == named_entity.position
             
             #TODO: isn't this nicer? does it work for overlapping entities as described in #9?
-            # if self.start <= named_entity.position <= self.end:
-            #     return True
-            # if named_entity.position <= self.start <= named_entity.position + len(named_entity.text):
-            #     return True
+            if self.start <= named_entity.position <= self.end:
+                return True
+            if named_entity.position <= self.start <= named_entity.position + len(named_entity.text):
+                return True
         return False
 
 
@@ -145,8 +154,7 @@ def filter(integrated_named_entities):
     filtered_ines = []
     
     for ine in integrated_named_entities:
-        
-        # was suggested by preferred ner package
+                
         for p in NER_LEADING_PACKAGES:
             if ine.was_suggested_by(p):
                 filtered_ines.append(ine)
