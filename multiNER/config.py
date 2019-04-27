@@ -16,7 +16,7 @@ NER_OTHER_PACKAGES_MINIMUM = 2
 # Sometimes only two NER sustems might suggest a type, two different types.
 # For example, stanford may say 'Utrecht' is a LOCATION, whereas polyglot suggests 'OTHER'.
 # In this dict, specify the order of preference, i.e. which type should be picked in such a case.
-NER_TYPE_PREFERENCE = { '1': 'LOCATION', '2': 'PERSON', '3': 'ORGANIZATION', '4': 'OTHER'}
+NER_TYPE_PREFERENCE = { 1: 'LOCATION', 2: 'PERSON', 3: 'ORGANIZATION', 4: 'OTHER'}
 
 
 # url for Stanford standalone NER setup.

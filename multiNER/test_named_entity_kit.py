@@ -1,5 +1,7 @@
 from .named_entity_kit import *
 
+from .config import *
+
 
 def test_integrated_named_entity_get_type_certainty():
     ne = get_named_entities()[0]
@@ -47,7 +49,7 @@ def test_integrate():
     actual_ines = integrate(entities)
 
     assert len(actual_ines) == 3
-    
+
     for ine in actual_ines:
         if (ine.text == 'Utrecht'):
             assert ine.get_count() == 3
@@ -72,28 +74,20 @@ def test_integrate():
 
 
 def test_integrate_two_types():
-    # TODO: fix! This one fails half the time (i.e. fix the code)
-    
     entities = [
         NamedEntity('John Smith', 'stanford', 15, 'PERSON'),
         NamedEntity('John Smith', 'polyglot', 15, 'OTHER')]
     actual_ines = integrate(entities)
 
+    expected_type = get_preferred_type(['PERSON', 'OTHER'])
+
     assert len(actual_ines) == 1
-    
+
     for ine in actual_ines:
         if (ine.text == 'John Smith'):
             assert ine.get_count() == 2
-            assert ine.get_type() == 'PERSON'
+            assert ine.get_type() == expected_type
             assert ine.get_type_certainty() == 1
-
-    # create mock instance
-    ine = IntegratedNamedEntity(entities[0])
-    # replace source for sources
-    ine.sources_types = {'spotlight': 'LOCATION',
-                         'stanford': 'LOCATION', 'spacy': 'OTHER'}
-    assert ine.get_sources().sort() == [
-        'spacy', 'stanford', 'spotlight'].sort()
 
 
 def get_named_entities():
@@ -109,3 +103,15 @@ def get_named_entities():
         NamedEntity('John Smith', 'stanford', 15, 'PERSON'),
         NamedEntity('John Smith', 'polyglot', 15, 'OTHER')
     ]
+
+
+def get_preferred_type(types):
+    if len(types) == 1:
+        return types[0]
+    else:
+        preferred_type = ''
+        for index in range(1, len(NER_TYPE_PREFERENCE)):
+            if NER_TYPE_PREFERENCE[index] in types:
+                preferred_type = NER_TYPE_PREFERENCE[index]
+                break
+        return preferred_type

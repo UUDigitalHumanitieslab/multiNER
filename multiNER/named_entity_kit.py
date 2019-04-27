@@ -1,5 +1,6 @@
 
-from flask import current_app
+from .config import NER_LEADING_PACKAGES, NER_OTHER_PACKAGES_MINIMUM, NER_TYPE_PREFERENCE
+from collections import defaultdict
 
 class NamedEntity:
 
@@ -29,10 +30,20 @@ class IntegratedNamedEntity():
 
 
     def get_type(self):
-        # TODO: fix this by making it configurable
-        #print(current_app.config.get('NER_TYPE_PREFERENCE'))
         types_counts = self.get_types_counts()
-        return max(types_counts, key=lambda key: types_counts[key]) 
+
+        max_count = 0
+        suggested_types = []
+
+        for type, count in types_counts.items():
+            if count == max_count:
+                suggested_types.append(type)
+            elif count > max_count:
+                suggested_types.clear()
+                suggested_types.append(type)
+                max_count = count
+
+        return self.get_preferred_type(suggested_types) 
 
 
     def get_type_certainty(self):
@@ -46,7 +57,7 @@ class IntegratedNamedEntity():
         Returns a dict with this entities' types as keys and
         the count of how many times a type was suggested as value.
         '''
-        type_count = {}
+        type_count = defaultdict(list)
         
         for source, type in self.sources_types.items():
             if type in type_count:
@@ -55,6 +66,22 @@ class IntegratedNamedEntity():
                 type_count[type] = 1
 
         return type_count
+
+    
+    def get_preferred_type(self, types):
+        '''
+        If multiple types are suggested (e.g. PERSON by spacy and OTHER by polyglot),
+        pick one based on the preference defined in the config
+        '''
+        if len(types) == 1:
+            return types[0]
+        else:
+            preferred_type = ''
+            for index in range(1, len(NER_TYPE_PREFERENCE)):
+                if NER_TYPE_PREFERENCE[index] in types:
+                    preferred_type = NER_TYPE_PREFERENCE[index]
+                    break
+            return preferred_type
 
 
     def get_count(self):
