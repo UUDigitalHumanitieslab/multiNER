@@ -1,6 +1,5 @@
 
 from .config import NER_LEADING_PACKAGES, NER_OTHER_PACKAGES_MINIMUM, NER_TYPE_PREFERENCE
-from collections import defaultdict
 
 class NamedEntity:
 
@@ -9,6 +8,7 @@ class NamedEntity:
         self.source = source
         self.position = position
         self.type = type
+
 
     def __eq__(self, other):
         if isinstance(other, NamedEntity):
@@ -57,7 +57,7 @@ class IntegratedNamedEntity():
         Returns a dict with this entities' types as keys and
         the count of how many times a type was suggested as value.
         '''
-        type_count = defaultdict(list)
+        type_count = {}
         
         for source, type in self.sources_types.items():
             if type in type_count:
@@ -91,7 +91,19 @@ class IntegratedNamedEntity():
     def add(self, named_entity):
         self.sources_types[named_entity.source] = named_entity.type
 
-    # TODO: context
+    
+    def set_context(self, complete_text, context_len):
+        '''
+        Set the context of the current entity
+        '''
+        leftof = complete_text[:self.start].strip()
+        l_context = " ".join(leftof.split()[-context_len:])
+
+        rightof = complete_text[self.end:].strip()
+        r_context = " ".join(rightof.split()[:context_len])
+        
+        self.left_context = l_context 
+        self.right_context = r_context
 
 
     def is_equal_to(self, named_entity):

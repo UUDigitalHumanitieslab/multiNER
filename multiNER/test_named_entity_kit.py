@@ -44,6 +44,21 @@ def test_integrated_named_entity_get_sources():
         'spacy', 'stanford', 'spotlight'].sort()
 
 
+def test_integrated_named_entity_context():
+    complete_text = "A sentence with some good context AN ENTITY around a named entity that will surely be found!"
+    ne = NamedEntity('AN ENTITY', 'stanford', 34, 'PERSON')
+    ine = IntegratedNamedEntity(ne)
+    ine.set_context(complete_text, 3)
+
+    assert ine.left_context == 'some good context'
+    assert ine.right_context == 'around a named'
+
+    ine.set_context(complete_text, 6)
+
+    assert ine.left_context == 'A sentence with some good context'
+    assert ine.right_context == 'around a named entity that will'
+
+
 def test_integrate():
     entities = get_named_entities()
     actual_ines = integrate(entities)
