@@ -100,305 +100,139 @@ def ner(text="Dit is een verhaal over dhr Willem Jan Faber."):
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=8084)
-
-
-    
-    
 '''
-import json
-import lxml.html
-import requests
-import operator
 
-from flask import request, Response, current_app, Blueprint, render_template, flash, redirect
-from lxml import etree
 
 from ner_packages.stanford import Stanford
 from ner_packages.spotlight import Spotlight
 from ner_packages.spacy import Spacy
 from ner_packages.polyglot import Polyglot
 
+from .named_entity_kit import integrate, filter, set_contexts
 
-def get_stanford_port(language):
-    if language == 'nl':
-        return current_app.config.get('STANFORD_NL_PORT')
-    elif language == 'en':
-        return current_app.config.get('STANFORD_EN_PORT')
+
+class Configuration:
+    def __init__(
+        self,
+        language,
+        context_length,
+        leading_packages,
+        other_packages_min,
+        type_preference
+    ):
+        self.language = language
+        self.context_length = context_length
+        self.leading_packages = leading_packages
+        self.other_packages_min = other_packages_min
+        self.type_preference = type_preference
+
+
+class ImproperlyConfiguredException(Exception):
+    pass
+
+
+class MultiNER:
+
+    def __init__(self, app_config, ner_configuration):
+        '''
+        Create an instance of the MultiNER class. 
+        
+        Keyword arguments:
+            app_config -- The config object of the Flask app
+            ner_configuration -- An instance of the Configuration class
+        '''
+        if not ner_configuration.language in ['en', 'nl', 'it']:
+            raise ValueError(
+                "Language '{}' is not supported by multiNER".format(ner_configuration.language))
+
+        self.validate_app_config(app_config)
+        self.app_config = app_config
+        
+        self.configuration = ner_configuration
+
     
-    raise ValueError("Language '{}' is not supported by the Stanford NER package".format(language))
+    def validate_app_config(self, app_config):        
+        required_settings = [
+            'STANFORD_HOST', 'STANFORD_NL_PORT', 'STANFORD_EN_PORT', 'SPOTLIGHT_NL_URL', 'SPOTLIGHT_EN_URL', 'SPOTLIGHT_IT_URL', 'TIMEOUT'
+        ]
+
+        for rs in required_settings:
+            if not app_config.get(rs, False):
+                raise ImproperlyConfiguredException("Setting '{}' is required. Add it to your app_config.".format(rs))
+         
+
+    def find_entities(self, input):
+        results = {}
+
+        for part in input:
+            text = input[part]
+            entities = self.get_entities_from_ner_packages(text)
+            integrated_entities = integrate(entities, self.configuration.type_preference)            
+            set_contexts(integrated_entities, input[part], self.configuration.context_length)
+                        
+            results[part] = {
+                'entities': [ine.to_jsonable() for ine in integrated_entities],
+                'text': input[part]
+            }
+        
+        return (results)
 
 
-def get_spotlight_url(language):
-    if language == 'nl':
-        return current_app.config.get('SPOTLIGHT_NL_URL')
-    elif language == 'en':
-        return current_app.config.get('SPOTLIGHT_EN_URL')
-    elif language == 'it':
-        return current_app.config.get('SPOTLIGHT_IT_URL')
-    
-    raise ValueError("Language '{}' is not supported by the Spotlight NER package".format(language))
-
-
-def find_entities(input, language, context_len = 5):
-    parsers = {"polyglot": Polyglot,
-               "spacy": Spacy,
-               "spotlight": Spotlight,
-               "stanford": Stanford}
-    
-    result_all = {}
-    fresult = {}
-    
-    for part in input:
-        result = {}
+    def get_entities_from_ner_packages(self, text):
         tasks = []
+
+        parsers = self.get_parsers()
 
         for p in parsers:
             if (p == "stanford"):
                 tasks.append(parsers[p](
-                    current_app.config.get('STANFORD_HOST'), 
-                    get_stanford_port(language), 
-                    current_app.config.get('TIMEOUT'), 
-                    text_input=input[part]))
+                    self.app_config.get('STANFORD_HOST'),
+                    self.get_stanford_port(),
+                    self.app_config.get('TIMEOUT'),
+                    text_input=text))
             elif (p == "spotlight"):
                 tasks.append(parsers[p](
-                    get_spotlight_url(language),
-                    current_app.config.get('TIMEOUT'),
-                    text_input=input[part]))
+                    self.get_spotlight_url(),
+                    self.app_config.get('TIMEOUT'),
+                    text_input=text))
             else:
-                tasks.append(parsers[p](text_input=input[part], language=language))
-            
+                tasks.append(parsers[p](
+                    text_input=text, language=self.configuration.language))
+
             tasks[-1].start()
 
+        entities = []
 
         for task in tasks:
-            for name, value in task.join().items():
-                result[name] = value
+            entities.extend(task.join())
 
-        result_all[part] = integrate_results(result, part, input[part], context_len)
-
-    
-    for part in result_all:
-        if result_all[part]:
-            part_items = []
-
-            for item in result_all[part]:
-                part_items.append(item)
-                
-            fresult[part] = part_items
-
-    result = {"entities": fresult}
-
-    # Activate for local testing purposes when necessary (and change path)
-    # TEST_OUTPUT = '/home/alexhebing/Projects/placenamedisambiguation/test_files/output/entities.json'
-    # with open(TEST_OUTPUT, 'w+') as file:    
-    #     file.write(json.dumps({"entities": fresult}, indent=4, sort_keys=True))
-    
-    return (result)
+        return entities
 
 
+    def get_parsers(self):
+        parsers = { "polyglot": Polyglot,
+                    "spacy": Spacy,
+                    "spotlight": Spotlight 
+                }
 
-def context(text_org, ne, pos, context=5):
-    '''
-        Return the context of an NE, based on abs-pos,
-        if there are 'context-tokens' in the way,
-        skip those.
+        if not self.configuration.language == 'it':
+            parsers['stanford'] = Stanford
 
-        Current defined context-tokens:
-        ”„!,'\",`<>?-+"
-    '''
-    CONTEXT_TOKENS = "”„!,'\",`<>?-+\\"
-
-    leftof = text_org[:pos].strip()
-    l_context = " ".join(leftof.split()[-context:])
-
-    rightof = text_org[pos + len(ne):].strip()
-    r_context = " ".join(rightof.split()[:context])
-
-    ne_context = ne
-
-    try:
-        if l_context[-1] in CONTEXT_TOKENS:
-            ne_context = l_context[-1] + ne_context
-    except Exception:
-        pass
-
-    try:
-        if r_context[0] in CONTEXT_TOKENS:
-            ne_context = ne_context + r_context[0]
-    except Exception:
-        pass
-
-    return l_context, r_context, ne_context
+        return parsers
 
 
-def translate(input_str):
-        '''
-            Translate the labels to one-form-fits-all (that is also human-readable).
-        '''
-        if input_str == "ORG":
-            return 'ORGANIZATION'
-        if input_str == "PER":
-            return 'PERSON'
-        if input_str == "MISC":
-            return 'OTHER'
-        if input_str == "LOC":
-            return 'LOCATION'
-        return input_str
+    def get_stanford_port(self):
+        if self.configuration.language == 'nl':
+            return self.app_config.get('STANFORD_NL_PORT')
+        elif self.configuration.language == 'en':
+            return self.app_config.get('STANFORD_EN_PORT')
 
 
-def integrate_results(result, source, source_text, context_len):
-    new_result = {}
-    res = {}
+    def get_spotlight_url(self):
+        if self.configuration.language == 'nl':
+            return self.app_config.get('SPOTLIGHT_NL_URL')
+        elif self.configuration.language == 'en':
+            return self.app_config.get('SPOTLIGHT_EN_URL')
+        elif self.configuration.language == 'it':
+            return self.app_config.get('SPOTLIGHT_IT_URL')
 
-    for ne in result.get("stanford"):
-        res = {}
-        res["count"] = 1
-        res["ne"] = ne.get("ne")
-        res["ner_src"] = ["stanford"]
-        res["type"] = {ne.get("type"): 1}
-        res["pref_type"] = ne.get("type")
-        new_result[ne.get("pos")] = res
-
-    for ne in result.get("spotlight"):
-        if not ne.get("pos") in res:
-            res = {}
-            res["count"] = 1
-            res["ne"] = ne.get("ne")
-            res["ner_src"] = ["spotlight"]
-            res["type"] = {ne.get("type"): 1}
-            res["pref_type"] = ne.get("type")
-            new_result[ne.get("pos")] = res
-        else:
-            new_result[ne.get("pos")]["count"] += 1
-            new_result[ne.get("pos")]["ner_src"].append("spotlight")
-
-            if not ne.get("type") in new_result[ne.get("pos")]["type"]:
-                new_result[ne.get("pos")]["type"][ne.get("type")] = 1
-            else:
-                new_result[ne.get("pos")]["type"][ne.get("type")] += 1
-
-    parsers = ["spacy", "polyglot"]
-
-    for parser in parsers:
-        for ne in result.get(parser):
-            # Both spacy and polyglot return abbreviations as type (e.g. PER)
-            # translate these into the same as Stanford (e.g. PERSON)
-            ne_type = translate(ne.get("type"))
-            
-            if ne.get("pos") in new_result:
-
-                if parser in new_result[ne.get("pos")]["ner_src"]:
-                    continue
-
-                new_result[ne.get("pos")]["count"] += 1
-                new_result[ne.get("pos")]["ner_src"].append(parser)
-
-                if ne_type in new_result[ne.get("pos")]["type"]:
-                    new_result[ne.get("pos")]["type"][ne_type] += 1
-                else:
-                    new_result[ne.get("pos")]["type"][ne_type] = 1
-
-                if not ne.get("ne") == new_result[ne.get("pos")].get("ne"):
-                    new_result[ne.get("pos")]["alt_ne"] = ne.get("ne")
-
-            else:
-                new_result[ne.get("pos")] = {
-                    "count": 1,
-                    "ne": ne.get("ne"),
-                    "ner_src": [parser],
-                    "type": {ne_type: 1}}
-
-    final_result = []
-    for ne in new_result:
-        if new_result[ne].get("pref_type") or \
-                len(new_result[ne].get("ner_src")) == 2:
-            if "pref_type" in new_result[ne]:
-                ne_type = max_class(new_result[ne]["type"],
-                                    new_result[ne]["pref_type"])
-                new_result[ne].pop("pref_type")
-            else:
-                ne_type = max_class(new_result[ne]["type"],
-                                    list(new_result[ne]["type"])[0])
-
-            new_result[ne]["types"] = list(new_result[ne]["type"])
-            new_result[ne]["type"] = { ne_type[0] : 1}
-            new_result[ne]["type_certainty"] = ne_type[1]
-
-            new_result[ne]["left_context"], \
-            new_result[ne]["right_context"], \
-            new_result[ne]["ne_context"] = context(source_text,
-                                                   new_result[ne]["ne"],
-                                                   ne,
-                                                   context_len)
-            new_result[ne]["pos"] = ne
-            new_result[ne]["source"] = source
-
-            final_result.append(new_result[ne])
-
-    final_result = sorted(final_result, key=operator.itemgetter('pos'))
-
-    return final_result
-
-
-def max_class(input_type={"LOC": 2, "MISC": 3}, pref_type="LOC"):
-    mc = max(input_type, key=input_type.get)
-
-    if input_type.get(mc) == 1:
-        mc = pref_type
-        sure = 1
-    if input_type.get(mc) == 2:
-        sure = 2
-    if input_type.get(mc) == 3:
-        sure = 3
-    if input_type.get(mc) == 4:
-        sure = 4
-
-    return(mc, sure)
-
-
-def test_all():
-    '''
-    Example usage:
-
-    >>> parsers = {"polyglot": Polyglot,
-    ...            "spacy": Spacy,
-    ...            "stanford": Stanford,
-    ...            "spotlight": Spotlight}
-
-    >>> url = [EXAMPLE_URL]
-    >>> parsed_text = ocr_to_dict(url[0])
-
-    >>> tasks = []
-    >>> result = {}
-
-    >>> for p in parsers:
-    ...     tasks.append(parsers[p](parsed_text=parsed_text["p"]))
-    ...     tasks[-1].start()
-
-    >>> import time
-    >>> time.sleep(1)
-
-    >>> for p in tasks:
-    ...     ner_result = p.join()
-    ...     result[list(ner_result)[0]] = ner_result[list(ner_result)[0]]
-
-    >>> from pprint import pprint
-    >>> pprint(intergrate_results(result, "p", parsed_text["p"], 5)[-1])
-    {'count': 2,
-     'left_context': 'als wie haar nadert streelt:',
-     'ne': 'René',
-     'ne_context': 'René',
-     'ner_src': ['spacy', 'polyglot'],
-     'pos': 5597,
-     'right_context': 'genoot van zijn charme als',
-     'source': 'p',
-     'type': 'person',
-     'type_certainty': 2,
-     'types': ['person']}
-    '''
-    return
-
-
-if __name__ == '__main__':
-    import doctest
-    doctest.testmod(verbose=True)

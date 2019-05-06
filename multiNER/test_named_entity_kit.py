@@ -1,12 +1,10 @@
 from .named_entity_kit import *
 
-from .config import *
-
 
 def test_integrated_named_entity_get_type_certainty():
     ne = get_named_entities()[0]
     # create mock instance
-    ine = IntegratedNamedEntity(ne)
+    ine = IntegratedNamedEntity(ne, default_type_preferences())
     # replace source for type_certainty
     ine.sources_types = {'spotlight': 'LOCATION',
                          'stanford': 'LOCATION', 'spacy': 'OTHER'}
@@ -16,17 +14,27 @@ def test_integrated_named_entity_get_type_certainty():
 def test_integrated_named_entity_get_type():
     ne = get_named_entities()[0]
     # create mock instance
-    ine = IntegratedNamedEntity(ne)
+    ine = IntegratedNamedEntity(ne, default_type_preferences)
     # replace source for type
     ine.sources_types = {'spotlight': 'LOCATION',
                          'stanford': 'LOCATION', 'spacy': 'OTHER'}
     assert ine.get_type() == 'LOCATION'
 
 
+def test_integrated_named_entity_get_types():
+    ne = get_named_entities()[0]
+    # create mock instance
+    ine = IntegratedNamedEntity(ne, default_type_preferences)
+    # replace source for type
+    ine.sources_types = {'spotlight': 'LOCATION',
+                         'stanford': 'LOCATION', 'spacy': 'OTHER'}
+    assert ine.get_types().sort() == ['LOCATION', 'OTHER'].sort()
+
+
 def test_integrated_named_entity_get_count():
     ne = get_named_entities()[0]
     # create mock instance
-    ine = IntegratedNamedEntity(ne)
+    ine = IntegratedNamedEntity(ne, default_type_preferences)
     # replace source for count
     ine.sources_types = {'spotlight': 'LOCATION',
                          'stanford': 'LOCATION', 'spacy': 'OTHER'}
@@ -36,7 +44,7 @@ def test_integrated_named_entity_get_count():
 def test_integrated_named_entity_get_sources():
     ne = get_named_entities()[0]
     # create mock instance
-    ine = IntegratedNamedEntity(ne)
+    ine = IntegratedNamedEntity(ne, default_type_preferences())
     # replace source for sources
     ine.sources_types = {'spotlight': 'LOCATION',
                          'stanford': 'LOCATION', 'spacy': 'OTHER'}
@@ -47,7 +55,7 @@ def test_integrated_named_entity_get_sources():
 def test_integrated_named_entity_context():
     complete_text = "A sentence with some good context AN ENTITY around a named entity that will surely be found!"
     ne = NamedEntity('AN ENTITY', 'stanford', 34, 'PERSON')
-    ine = IntegratedNamedEntity(ne)
+    ine = IntegratedNamedEntity(ne, default_type_preferences())
     ine.set_context(complete_text, 3)
 
     assert ine.left_context == 'some good context'
@@ -65,17 +73,13 @@ def test_integrated_named_entity_alt_text():
         NamedEntity('Utrecht', 'polyglot', 10, 'LOCATION')
     ]
     
-    ines = integrate(entities)
+    ines = integrate(entities, {1: 'LOCATION', 2: 'ORGANIZATION'})
     assert len(ines) == 1
-
-    expected_type = get_preferred_type(['LOCATION', 'ORGANIZATION'])
-    expected_text = [ne for ne in entities if ne.type == expected_type][0].text
-    expected_alt_text = [ne for ne in entities if not ne.type == expected_type][0].text
-
+    
     ine = ines[0]
-    assert ine.text == expected_text
-    assert ine.alt_texts == [expected_alt_text]
-    assert ine.get_type() == expected_type    
+    assert ine.text == 'Utrecht'
+    assert ine.alt_texts == ['Utrecht University']
+    assert ine.get_type() == 'LOCATION'
     
 
 def test_integrated_named_entity_alt_text_different_start():
@@ -83,22 +87,18 @@ def test_integrated_named_entity_alt_text_different_start():
         NamedEntity('Universiteit Utrecht', 'stanford', 10, 'ORGANIZATION'),
         NamedEntity('Utrecht', 'polyglot', 24, 'LOCATION')]
         
-    ines = integrate(entities)
+    ines = integrate(entities, {1: 'LOCATION', 2: 'ORGANIZATION'})
     assert len(ines) == 1
 
-    expected_type = get_preferred_type(['LOCATION', 'ORGANIZATION'])
-    expected_text = [ne for ne in entities if ne.type == expected_type][0].text
-    expected_alt_text = [ne for ne in entities if not ne.type == expected_type][0].text
-
     ine = ines[0]
-    assert ine.text == expected_text
-    assert ine.alt_texts == [expected_alt_text]
-    assert ine.get_type() == expected_type
+    assert ine.text == 'Utrecht'
+    assert ine.alt_texts == ['Universiteit Utrecht']
+    assert ine.get_type() == 'LOCATION'
 
 
 def test_integrate():
     entities = get_named_entities()
-    actual_ines = integrate(entities)
+    actual_ines = integrate(entities, default_type_preferences())
 
     assert len(actual_ines) == 3
 
@@ -117,7 +117,7 @@ def test_integrate():
             assert ine.get_type_certainty() == 2
 
     # create mock instance
-    ine = IntegratedNamedEntity(entities[0])
+    ine = IntegratedNamedEntity(entities[0], default_type_preferences())
     # replace source for sources
     ine.sources_types = {'spotlight': 'LOCATION',
                          'stanford': 'LOCATION', 'spacy': 'OTHER'}
@@ -129,64 +129,66 @@ def test_integrate_two_types():
     entities = [
         NamedEntity('John Smith', 'stanford', 15, 'PERSON'),
         NamedEntity('John Smith', 'polyglot', 15, 'OTHER')]
-    actual_ines = integrate(entities)
-
-    expected_type = get_preferred_type(['PERSON', 'OTHER'])
+    actual_ines = integrate(entities, {1: 'PERSON', 2: 'OTHER'})
 
     assert len(actual_ines) == 1
 
-    for ine in actual_ines:
-        if (ine.text == 'John Smith'):
-            assert ine.get_count() == 2
-            assert ine.get_type() == expected_type
-            assert ine.get_type_certainty() == 1
+    ine = actual_ines[0]
+    assert ine.get_count() == 2
+    assert ine.get_type() == 'PERSON'
+    assert ine.get_type_certainty() == 1
 
 
 def test_filter_leading_packages():
     named_entities = []
+
+    leading_packages = ['stanford', 'spotlight']
     
     index = 1
-    for p in NER_LEADING_PACKAGES:
+    for p in leading_packages:
         named_entities.append(NamedEntity('Gouda', p, index * 11, 'LOCATION'))
         index += 1
     
-    ines = integrate(named_entities)
-    assert len(ines) == len(NER_LEADING_PACKAGES)
+    ines = integrate(named_entities, default_type_preferences())
+    assert len(ines) == 2
 
-    fines = filter(ines)
-    assert len(fines) == len(NER_LEADING_PACKAGES)
+    fines = filter(ines, leading_packages, 2)
+    assert len(fines) == 2
 
     # add one that should be excluded
     otherne = NamedEntity('Gouda', 'OTHERNERPACKAGE', 1, 'LOCATION')
     named_entities.append(otherne)
 
-    ines2 = integrate(named_entities)
-    assert len(ines2) == len(NER_LEADING_PACKAGES) + 1
+    ines = integrate(named_entities, default_type_preferences())
+    assert len(ines) == 3
     
-    fines = filter(ines2)
-    assert len(fines) == len(NER_LEADING_PACKAGES)
+    fines = filter(ines, leading_packages, 2)
+    assert len(fines) == 2
 
 
 def test_filter_other_packages_min():
     named_entities = []
 
+    leading_packages = ['stanford', 'spotlight']
+
+    # generate 3 equal entities from different non-leading packages
     for index in range(1,4):
         named_entities.append(NamedEntity('Gouda', 'OTHERNERPACKAGE_{}'.format(index), 11, 'LOCATION'))
     
-    ines = integrate(named_entities)
+    ines = integrate(named_entities, default_type_preferences())
     assert len(ines) == 1
 
-    fines = filter(ines) 
+    fines = filter(ines, leading_packages, 2) 
     assert len(fines) == 1
 
     #insert one that should be excluded
     otherne = NamedEntity('Gouda', 'YETOTHERNERPACKAGE', 1, 'LOCATION')
     named_entities.append(otherne)
 
-    ines2 = integrate(named_entities)
-    assert len(ines2) == 2
+    ines = integrate(named_entities, default_type_preferences())
+    assert len(ines) == 2
     
-    fines = filter(ines2)
+    fines = filter(ines, leading_packages, 2)
     assert len(fines) == 1
 
 
@@ -204,14 +206,5 @@ def get_named_entities():
         NamedEntity('John Smith', 'polyglot', 25, 'OTHER')
     ]
 
-
-def get_preferred_type(types):
-    if len(types) == 1:
-        return types[0]
-    else:
-        preferred_type = ''
-        for index in range(1, len(NER_TYPE_PREFERENCE)):
-            if NER_TYPE_PREFERENCE[index] in types:
-                preferred_type = NER_TYPE_PREFERENCE[index]
-                break
-        return preferred_type
+def default_type_preferences():
+    return { 1: 'LOCATION', 2: 'PERSON', 3: 'ORGANIZATION', 4: 'OTHER' }

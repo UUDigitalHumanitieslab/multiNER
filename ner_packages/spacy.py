@@ -59,11 +59,13 @@ class Spacy(threading.Thread):
 
     
     def parse_type(self, spacy_type):
+        if spacy_type == 'PER':
+            return 'PERSON'
         if spacy_type == 'LOC':
             return 'LOCATION'
         if spacy_type == 'ORG':
             return 'ORGANIZATION'
-        return spacy_type
+        return 'OTHER'
 
 
     def join(self):
