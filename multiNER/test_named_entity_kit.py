@@ -81,6 +81,39 @@ def test_integrated_named_entity_alt_text_different_start():
     assert ine.get_type() == 'LOCATION'
 
 
+def test_integrated_named_entity_add():
+    initial_entity = NamedEntity('Alex Hebing', 'stanford', 0, 'PERSON')    
+    ine = IntegratedNamedEntity(initial_entity, default_type_preferences())
+
+    next_ne = NamedEntity('Alex Hebing', 'spacy', 0, 'PERSON')
+    ine.add(next_ne)
+
+    assert len(ine.sources_types) == 2
+    assert ine.get_types() == ['PERSON']
+    assert ine.alt_texts == []
+
+    # Now insert one with preferred type
+    next_ne = NamedEntity('Alex', 'polyglot', 0, 'LOCATION')
+    ine.add(next_ne)
+
+    assert len(ine.sources_types) == 3
+    assert ine.get_types().sort() == ['PERSON', 'LOCATION'].sort()
+    assert ine.text == 'Alex'
+    assert ine.alt_texts == ['Alex Hebing']
+
+    # Now insert one with same text and type as first one
+    next_ne = NamedEntity('Alex Hebing', 'spotlight', 0, 'PERSON')
+    ine.add(next_ne)
+
+    # The below proves the add logic is still messy, especially with regard to integrating the type.
+    # Let it fail till a solution is found / implemented.
+    # See the TODO in the add() method.
+    assert len(ine.sources_types) == 4
+    assert ine.get_types().sort() == ['PERSON', 'LOCATION'].sort()
+    assert ine.text == 'Alex'
+    assert ine.alt_texts == ['Alex Hebing']
+
+
 def test_integrate():
     entities = get_named_entities()
     actual_ines = integrate(entities, default_type_preferences())

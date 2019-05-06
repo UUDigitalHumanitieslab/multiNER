@@ -80,7 +80,7 @@ class IntegratedNamedEntity():
 
         return type_count
 
-    def get_preferred_type(self, types):
+    def get_preferred_type(self, types):        
         '''
         If multiple types are suggested (e.g. PERSON by spacy and OTHER by polyglot),
         pick one based on the preference defined in the config
@@ -100,10 +100,13 @@ class IntegratedNamedEntity():
         return len(self.sources_types)
 
 
-    def add(self, named_entity):
+    def add(self, named_entity):        
+        # TODO: type does not reflect logic implemented below!
+        
         if not self.text == named_entity.text:
             if self.get_preferred_type([self.get_type(), named_entity.type]) == named_entity.type:
-                self.alt_texts.append(self.text)
+                if not self.text in self.alt_texts:
+                    self.alt_texts.append(self.text)
                 self.text = named_entity.text
             else:
                 self.alt_texts.append(named_entity.text)
