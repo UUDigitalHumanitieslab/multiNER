@@ -108,7 +108,7 @@ class Stanford(threading.Thread):
 
 
     def parse_type(self, stanford_type):
-        if stanford_type == "I-PER" or stanford_type == "B-PER":
+        if stanford_type == "I-PER" or stanford_type == "B-PER" or stanford_type == 'PERSON':
             return "PERSON"
         if stanford_type == "I-LOC" or stanford_type == "B-LOC":
             return "LOCATION"
