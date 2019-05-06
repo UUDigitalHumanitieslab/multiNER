@@ -168,10 +168,11 @@ class MultiNER:
             text = input[part]
             entities = self.get_entities_from_ner_packages(text)
             integrated_entities = integrate(entities, self.configuration.type_preference)            
-            set_contexts(integrated_entities, input[part], self.configuration.context_length)
+            filtered_ines = filter(integrated_entities, self.configuration.leading_packages, self.configuration.other_packages_min)
+            set_contexts(filtered_ines, input[part], self.configuration.context_length)
                         
             results[part] = {
-                'entities': [ine.to_jsonable() for ine in integrated_entities],
+                'entities': [ine.to_jsonable() for ine in filtered_ines],
                 'text': input[part]
             }
         

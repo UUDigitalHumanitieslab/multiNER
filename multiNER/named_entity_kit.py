@@ -156,12 +156,15 @@ def filter(integrated_named_entities, leading_packages, other_packages_min):
 
     for ine in integrated_named_entities:
 
+        was_added = False
+        
         for p in leading_packages:
             if ine.was_suggested_by(p):
                 filtered_ines.append(ine)
+                was_added = True
                 break
 
-        if len(ine.get_sources()) >= other_packages_min:
+        if not was_added and len(ine.get_sources()) >= other_packages_min:
             filtered_ines.append(ine)
 
     return filtered_ines
