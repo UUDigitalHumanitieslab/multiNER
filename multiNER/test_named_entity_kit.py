@@ -52,21 +52,6 @@ def test_integrated_named_entity_get_sources():
         'spacy', 'stanford', 'spotlight'].sort()
 
 
-def test_integrated_named_entity_context():
-    complete_text = "A sentence with some good context AN ENTITY around a named entity that will surely be found!"
-    ne = NamedEntity('AN ENTITY', 'stanford', 34, 'PERSON')
-    ine = IntegratedNamedEntity(ne, default_type_preferences())
-    ine.set_context(complete_text, 3)
-
-    assert ine.left_context == 'some good context'
-    assert ine.right_context == 'around a named'
-
-    ine.set_context(complete_text, 6)
-
-    assert ine.left_context == 'A sentence with some good context'
-    assert ine.right_context == 'around a named entity that will'
-
-
 def test_integrated_named_entity_alt_text():
     entities = [
         NamedEntity('Utrecht University', 'stanford', 10, 'ORGANIZATION'),
@@ -190,6 +175,22 @@ def test_filter_other_packages_min():
     
     fines = filter(ines, leading_packages, 2)
     assert len(fines) == 1
+
+
+def test_set_contexts():
+    complete_text = "A sentence with some good context AN ENTITY around a named entity that will surely be found!"
+    ne = NamedEntity('AN ENTITY', 'stanford', 34, 'PERSON')
+    ine = IntegratedNamedEntity(ne, default_type_preferences())
+    set_contexts([ine,], complete_text, 3)
+
+    assert ine.left_context == 'some good context'
+    assert ine.right_context == 'around a named'
+
+    set_contexts([ine,], complete_text, 6)
+
+    assert ine.left_context == 'A sentence with some good context'
+    assert ine.right_context == 'around a named entity that will'
+
 
 
 def get_named_entities():
