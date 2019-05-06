@@ -14,6 +14,9 @@ class NamedEntity:
             return self.text == other.text and self.position == other.position and self.type == other.type
         return False
 
+    def __str__(self):
+        return "{}, {}, {}, {}".format(self.text, self.type, self.position, self.source)
+
 
 class IntegratedNamedEntity():
 
@@ -130,6 +133,9 @@ class IntegratedNamedEntity():
             "ner_src": self.get_sources(),
             "types": self.get_types()
         }
+
+    def __str__(self):
+        return self.to_jsonable()
 
 
 def integrate(named_entities, type_preferences):
