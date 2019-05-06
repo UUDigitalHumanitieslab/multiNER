@@ -11,15 +11,28 @@ from .ner import MultiNER, Configuration
 bp = Blueprint('ner', __name__, url_prefix='/ner')
 
 
-# @bp.route('/', methods=['GET', 'POST'])
-# def index():
-#     form = NerForm()
-#     if form.validate_on_submit():
-#         text = form.text.data.replace('\r', ' ').replace('\n', ' ')
-#         entities = find_entities({'title': form.title.data, 'text': text}, form.language.data, 5, )
-#         return render_template('multiNER/results.html', text=text, entities=entities)
+@bp.route('/', methods=['GET', 'POST'])
+def index():
+    form = NerForm()
+    if form.validate_on_submit():
+        
+        text = form.text.data.replace('\r', ' ').replace('\n', ' ')
+        
+        ner_config = Configuration(
+            form.language.data, 
+            5, 
+            ['stanford', 'spotlight'], 
+            2, 
+            {1: 'LOCATION', 2: 'PERSON', 3: 'ORGANIZATION', 4: 'OTHER'})
+        
+    
+        multiner = MultiNER(current_app.config, ner_config)        
+        input = {'title': form.title.data, 'text': text}
+        entities_per_part = multiner.find_entities(input)
+        
+        return render_template('multiNER/results.html', text=text, entities=entities_per_part)
 
-#     return render_template('multiNER/index.html', form=form)
+    return render_template('multiNER/index.html', form=form)
 
 
 @bp.route('/collect_from_text', methods=['GET'])

@@ -1,6 +1,6 @@
 <h3>Thank you</h3>
 <p><a href="/ner/">Try another one</a></p>
-<p>Your results are in! A total of {{ entities.entities | length }} entities were found.</p>
+<p>Your results are in! A total of {{ entities['text'].entities | length }} entities were found.</p>
 
 <table>
     <tr>
@@ -34,11 +34,11 @@
 <br />
 <br />
 <h3>And the raw json:</h3>
-<p class="block">{{ entities | tojson | safe}}</p>
+<p class="block">{{ entities['text'] | tojson | safe}}</p>
 <p><a href="/ner/">Try another one</a></p>
 
-<!-- Let python create table: these are cut from the DOM and pasted into the tooltips (i.e. per entity) -->
-{% for entity in entities.entities.text %}
+<!-- Let python create tables: these are cut from the DOM and pasted into the tooltips (i.e. per entity) -->
+{% for entity in entities['text'].entities %}
 <table id={{entity.pos}} class="hide">
     <tr>
         <td>Named entity</td>
@@ -83,49 +83,49 @@
 </table>
 {% endfor %}
 
-<script>
+<script>    
     var text = htmlDecode('{{ text }}');
-    var entities = JSON.parse('{{ entities  | tojson | safe }}').entities.text
-
+    var entities = JSON.parse('{{ entities["text"].entities | tojson | safe }}')
     var entityWrapper = document.getElementById('entityWrapper');
     entityWrapper.innerHTML = highlight_entities(text, entities)
 
     function highlight_entities(text, entities) {
         if (!entities) return;
-        
+
         // ensure highest index is in first position 
         let sortedNamedEntities = entities.sort((a, b) => b.pos - a.pos)
 
         let withReplacements = text;
 
         let previous_entity_start_pos = undefined;
-        
+
         for (let sne of sortedNamedEntities) {
             sne_end_pos = sne.pos + sne.ne.length
-            
+
             if (previous_entity_start_pos && sne_end_pos > previous_entity_start_pos) continue;
             previous_entity_start_pos = sne.pos;
             withReplacements = this.insertNamedEntityTag(withReplacements, sne);
         }
-        
+
         return withReplacements;
     }
-    
+
     function insertNamedEntityTag(original, namedEntity) {
         let cssClass = '';
 
-        if (namedEntity.type['ORGANIZATION'] === 1) {
+        if (namedEntity.type == 'ORGANIZATION') {
             cssClass = 'ner_organization';
-        } else if (namedEntity.type['PERSON'] == 1) {
+        } else if (namedEntity.type == 'PERSON') {
             cssClass = 'ner_person';
-        } else if (namedEntity.type['LOCATION'] === 1) {
+        } else if (namedEntity.type == 'LOCATION') {
             cssClass = 'ner_location';
         } else {
             cssClass = "ner_other";
         }
 
         if (cssClass.length > 0) {
-            let tagged = `<span class="${cssClass} tooltip">${namedEntity.ne}<span class="tooltiptext">${getTable(namedEntity.pos)}</span></span>`            
+            let tagged =
+                `<span class="${cssClass} tooltip">${namedEntity.ne}<span class="tooltiptext">${getTable(namedEntity.pos)}</span></span>`
             return this.replaceAt(original, tagged, namedEntity)
         }
         return original;
