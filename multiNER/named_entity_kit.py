@@ -127,7 +127,7 @@ class IntegratedNamedEntity():
         return {
             "pos": self.start,
             "ne": self.text,
-            "alt_ne": self.alt_texts,
+            "alt_nes": self.alt_texts,
             "right_context": self.right_context,
             "left_context": self.left_context,
             "count": self.get_count(),
