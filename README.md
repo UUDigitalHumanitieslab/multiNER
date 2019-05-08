@@ -169,6 +169,11 @@ export FLASK_DEBUG=1
 flask run
 ```
 
+## Tests
+
+The multiNER application includes a bunch of unit tests. To run these, install pytest into your virtualenv (`pip install pytest`) and run: `pytest`.
+
+
 ## Usage
 
 ### Request
