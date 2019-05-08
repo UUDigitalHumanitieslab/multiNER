@@ -136,7 +136,7 @@ class MultiNER:
     def __init__(self, app_config, ner_configuration):
         '''
         Create an instance of the MultiNER class. 
-        
+
         Keyword arguments:
             app_config -- The config object of the Flask app
             ner_configuration -- An instance of the Configuration class
@@ -147,19 +147,18 @@ class MultiNER:
 
         self.validate_app_config(app_config)
         self.app_config = app_config
-        
+
         self.configuration = ner_configuration
 
-    
-    def validate_app_config(self, app_config):        
+    def validate_app_config(self, app_config):
         required_settings = [
             'STANFORD_HOST', 'STANFORD_NL_PORT', 'STANFORD_EN_PORT', 'SPOTLIGHT_NL_URL', 'SPOTLIGHT_EN_URL', 'SPOTLIGHT_IT_URL', 'TIMEOUT'
         ]
 
         for rs in required_settings:
             if not app_config.get(rs, False):
-                raise ImproperlyConfiguredException("Setting '{}' is required. Add it to your app_config.".format(rs))
-         
+                raise ImproperlyConfiguredException(
+                    "Setting '{}' is required. Add it to your app_config.".format(rs))
 
     def find_entities(self, input):
         results = {}
@@ -167,17 +166,19 @@ class MultiNER:
         for part in input:
             text = input[part]
             entities = self.get_entities_from_ner_packages(text)
-            integrated_entities = integrate(entities, self.configuration.type_preference)            
-            filtered_ines = filter(integrated_entities, self.configuration.leading_packages, self.configuration.other_packages_min)
-            set_contexts(filtered_ines, input[part], self.configuration.context_length)
-                        
+            integrated_entities = integrate(
+                entities, self.configuration.type_preference)
+            filtered_ines = filter(
+                integrated_entities, self.configuration.leading_packages, self.configuration.other_packages_min)
+            set_contexts(
+                filtered_ines, input[part], self.configuration.context_length)
+
             results[part] = {
                 'entities': [ine.to_jsonable() for ine in filtered_ines],
                 'text': input[part]
             }
-        
-        return (results)
 
+        return (results)
 
     def get_entities_from_ner_packages(self, text):
         tasks = []
@@ -209,25 +210,23 @@ class MultiNER:
 
         return entities
 
-
     def get_parsers(self):
-        parsers = { "polyglot": Polyglot,
-                    "spacy": Spacy,
-                    "spotlight": Spotlight 
-                }
-
-        if not self.configuration.language == 'it':
-            parsers['stanford'] = Stanford
+        parsers = {
+            "polyglot": Polyglot,
+            "spacy": Spacy,
+            "spotlight": Spotlight,
+            "stanford": Stanford
+        }
 
         return parsers
-
 
     def get_stanford_port(self):
         if self.configuration.language == 'nl':
             return self.app_config.get('STANFORD_NL_PORT')
         elif self.configuration.language == 'en':
             return self.app_config.get('STANFORD_EN_PORT')
-
+        elif self.configuration.language == 'it':
+            return self.app_config.get('STANFORD_IT_PORT')
 
     def get_spotlight_url(self):
         if self.configuration.language == 'nl':
@@ -236,4 +235,3 @@ class MultiNER:
             return self.app_config.get('SPOTLIGHT_EN_URL')
         elif self.configuration.language == 'it':
             return self.app_config.get('SPOTLIGHT_IT_URL')
-

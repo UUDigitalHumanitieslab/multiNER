@@ -28,6 +28,7 @@ NER_TYPE_PREFERENCE = { 1: 'LOCATION', 2: 'PERSON', 3: 'ORGANIZATION', 4: 'OTHER
 STANFORD_HOST = 'localhost'
 STANFORD_NL_PORT = '9898'
 STANFORD_EN_PORT = '9899'
+STANFORD_IT_PORT = '9900'
 
 
 # urls for Spotlight rest-services.
