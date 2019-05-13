@@ -62,13 +62,14 @@ class Polyglot(threading.Thread):
         return named_entities
 
     
-    def parse_type(self, polyglot_type):
+    def parse_type(self, polyglot_type):        
         if polyglot_type == 'I-PER':
             return 'PERSON'
         if polyglot_type == 'I-LOC':
             return 'LOCATION'
         if polyglot_type == 'I-ORG':
             return 'ORGANIZATION'
+        return "OTHER"
 
 
     def join(self):

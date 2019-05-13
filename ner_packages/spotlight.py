@@ -81,7 +81,7 @@ class Spotlight(threading.Thread):
         entities = []
 
         if data and data.get('Resources'):
-            for item in data.get('Resources'):
+            for item in data.get('Resources'):                
                 self.parse_type(item)
                 ne = {}
                 ne = NamedEntity(text=item.get('@surfaceForm'), source="spotlight",
@@ -92,10 +92,15 @@ class Spotlight(threading.Thread):
 
 
     def parse_type(self, item):
-        if "location" in item.get("@types").lower():
+        types = item.get("@types").lower()
+        
+        if "location" in types:
             return "LOCATION"
-        else:
-            return "OTHER"
+        if "person" in types:
+            return "PERSON"
+        if "organization" in types or "organisation" in types:
+            return "ORGANIZATION"        
+        return "OTHER"
 
     def join(self):
         threading.Thread.join(self)

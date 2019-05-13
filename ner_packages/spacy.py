@@ -58,8 +58,8 @@ class Spacy(threading.Thread):
         return entities
 
     
-    def parse_type(self, spacy_type):
-        if spacy_type == 'PER':
+    def parse_type(self, spacy_type):        
+        if spacy_type == 'PERSON':
             return 'PERSON'
         if spacy_type == 'LOC':
             return 'LOCATION'

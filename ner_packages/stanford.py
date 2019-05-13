@@ -105,13 +105,14 @@ class Stanford(threading.Thread):
 
         return named_entities
 
-    def parse_type(self, stanford_type):
+    def parse_type(self, stanford_type):        
         if stanford_type == "I-PER" or stanford_type == "B-PER" or stanford_type == 'PERSON' or stanford_type == 'PER':
             return "PERSON"
-        if stanford_type == "I-LOC" or stanford_type == "B-LOC" or stanford_type == 'LOC':
+        if stanford_type == "I-LOC" or stanford_type == "B-LOC" or stanford_type == 'LOC' or stanford_type == 'LOCATION':
             return "LOCATION"
-        if stanford_type == 'ORG':
+        if stanford_type == 'ORG' or stanford_type == "ORGANIZATION":
             return "ORGANIZATION"
+        return "OTHER"
 
     def join(self):
         threading.Thread.join(self)
