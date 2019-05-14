@@ -21,38 +21,99 @@ class NamedEntity:
 class IntegratedNamedEntity():
 
     def __init__(self, named_entity, type_preferences):
-        self.text = named_entity.text
         self.start = named_entity.position
         self.end = self.start + len(named_entity.text)
         self.sources_types = {named_entity.source: named_entity.type}
+        self.sources_texts = {named_entity.source: named_entity.text}
         self.alt_texts = []
         self.type_preferences = type_preferences
         self.right_context = ''
         self.left_context = ''
 
     def get_sources(self):
+        '''
+        Get a list of the ner packages that suggested this entity.
+        '''
         return list(self.sources_types.keys())
 
     def was_suggested_by(self, source):
+        '''
+        Determine whether this named entity was suggested by a certain ner package.
+        '''
         return source in self.get_sources()
 
+    def get_text(self):
+        '''
+        Get the text representing this entity. If multiple strings were suggested for the same position(s),
+        the following logic applies: if one is suggested most often, this one is chosen. If multiple texts 
+        are suggested evenly (e.g. 'Jane' once and 'Jane Doe' once), the text is chosen based on type 
+        preference. This implies that in more complicated scenarios, the text might be chosen based on which
+        entity was inserted first. Consider the following suggestions: 
+            [{'John':'PERSON}, {'John':'LOCATION'}, {'John Doe':'PERSON}, {'John Doe':'LOCATION}]
+        Based on type preference the texts will either be 'John' or 'John Doe' and the outcome of alt_texts 
+        the other one. This depends on chance, since there is no other sensible way to make a better choice. 
+        '''
+        texts_counts = self.get_value_count(self.sources_texts.items())
+        texts_with_highest_count = self.get_keys_with_highest_count(
+            texts_counts.items())
+
+        if len(texts_with_highest_count) == 1:
+            return texts_with_highest_count[0]
+        else:
+            for source, type in self.sources_types.items():
+                if type == self.get_type():
+                    return self.sources_texts[source]
+
+    def get_alt_texts(self):
+        '''
+        Get the alternative texts for this entity. Follows the same logic as get_text(), but opposite.
+        See the documentation there.
+        '''
+        self_text = self.get_text()
+        alt_texts = []
+
+        for source, text in self.sources_texts.items():
+            if not text == self_text and text not in alt_texts:
+                alt_texts.append(text)
+
+        return alt_texts
+
     def get_type(self):
-        types_counts = self.get_types_counts()
+        '''
+        Get the type of the entity. If multiple types are suggested, the one with the highest count is returned.
+        If multiple types have equal count, type is chosen based on type preference.
+        '''
+        types_counts = self.get_value_count(self.sources_types.items())
+        types_with_highest_counts = self.get_keys_with_highest_count(
+            types_counts.items())
 
+        if len(types_with_highest_counts) == 1:
+            return types_with_highest_counts[0]
+        else:
+            return self.get_preferred_type(types_with_highest_counts)
+
+    def get_keys_with_highest_count(self, dict_items):
+        '''
+        Helper method. Get the keys with the highest count in the form {key:count}.
+        Might contain multiple entries (with the same count).
+        '''
         max_count = 0
-        suggested_types = []
+        keys_with_highest_value = []
 
-        for type, count in types_counts.items():
+        for key, count in dict_items:
             if count == max_count:
-                suggested_types.append(type)
+                keys_with_highest_value.append(key)
             elif count > max_count:
-                suggested_types.clear()
-                suggested_types.append(type)
+                keys_with_highest_value.clear()
+                keys_with_highest_value.append(key)
                 max_count = count
 
-        return self.get_preferred_type(suggested_types)
+        return keys_with_highest_value
 
     def get_types(self):
+        '''
+        Get a list of all types suggested for this entity
+        '''
         all_types = self.sources_types.values()
         unique_types = []
         for t in all_types:
@@ -61,26 +122,29 @@ class IntegratedNamedEntity():
         return unique_types
 
     def get_type_certainty(self):
-        types_counts = self.get_types_counts()
+        '''
+        Get a representing the amount of ner packages that suggestde the type of this entity
+        '''
+        types_counts = self.get_value_count(self.sources_types.items())
         type = max(types_counts, key=lambda key: types_counts[key])
         return types_counts[type]
 
-    def get_types_counts(self):
+    def get_value_count(self, dict_items):
         '''
-        Returns a dict with this entities' types as keys and
-        the count of how many times a type was suggested as value.
+        Helper method. Returns a dict with the values of 'dict_items' as keys and
+        the count of how many times each value was found as value.
         '''
-        type_count = {}
+        value_count = {}
 
-        for source, type in self.sources_types.items():
-            if type in type_count:
-                type_count[type] = type_count[type] + 1
+        for key, value in dict_items:
+            if value in value_count:
+                value_count[value] = value_count[value] + 1
             else:
-                type_count[type] = 1
+                value_count[value] = 1
 
-        return type_count
+        return value_count
 
-    def get_preferred_type(self, types):        
+    def get_preferred_type(self, types):
         '''
         If multiple types are suggested (e.g. PERSON by spacy and OTHER by polyglot),
         pick one based on the preference defined in the config
@@ -95,24 +159,12 @@ class IntegratedNamedEntity():
                     break
             return preferred_type
 
-
     def get_count(self):
         return len(self.sources_types)
 
-
-    def add(self, named_entity):        
-        # TODO: type does not reflect logic implemented below!
-        
-        if not self.text == named_entity.text:
-            if self.get_preferred_type([self.get_type(), named_entity.type]) == named_entity.type:
-                if not self.text in self.alt_texts:
-                    self.alt_texts.append(self.text)
-                self.text = named_entity.text
-            else:
-                self.alt_texts.append(named_entity.text)
-
+    def add(self, named_entity):
+        self.sources_texts[named_entity.source] = named_entity.text
         self.sources_types[named_entity.source] = named_entity.type
-
 
     def is_equal_to(self, named_entity):
         if isinstance(named_entity, NamedEntity):
@@ -122,12 +174,11 @@ class IntegratedNamedEntity():
                 return True
         return False
 
-
     def to_jsonable(self):
         return {
             "pos": self.start,
-            "ne": self.text,
-            "alt_nes": self.alt_texts,
+            "ne": self.get_text(),
+            "alt_nes": self.get_alt_texts(),
             "right_context": self.right_context,
             "left_context": self.left_context,
             "count": self.get_count(),
@@ -137,8 +188,6 @@ class IntegratedNamedEntity():
             "types": self.get_types()
         }
 
-    def __str__(self):
-        return self.to_jsonable()
 
 
 def integrate(named_entities, type_preferences):
@@ -166,7 +215,7 @@ def filter(integrated_named_entities, leading_packages, other_packages_min):
     for ine in integrated_named_entities:
 
         was_added = False
-        
+
         for p in leading_packages:
             if ine.was_suggested_by(p):
                 filtered_ines.append(ine)
@@ -183,7 +232,7 @@ def set_contexts(integrated_named_entities, complete_text, context_len):
     '''
     Set the context for integrated named entities
     '''
-    for ine in integrated_named_entities:    
+    for ine in integrated_named_entities:
         leftof = complete_text[:ine.start].strip()
         l_context = " ".join(leftof.split()[-context_len:])
 

@@ -62,8 +62,8 @@ def test_integrated_named_entity_alt_text():
     assert len(ines) == 1
     
     ine = ines[0]
-    assert ine.text == 'Utrecht'
-    assert ine.alt_texts == ['Utrecht University']
+    assert ine.get_text() == 'Utrecht'
+    assert ine.get_alt_texts() == ['Utrecht University']
     assert ine.get_type() == 'LOCATION'
     
 
@@ -76,8 +76,8 @@ def test_integrated_named_entity_alt_text_different_start():
     assert len(ines) == 1
 
     ine = ines[0]
-    assert ine.text == 'Utrecht'
-    assert ine.alt_texts == ['Universiteit Utrecht']
+    assert ine.get_text() == 'Utrecht'
+    assert ine.get_alt_texts() == ['Universiteit Utrecht']
     assert ine.get_type() == 'LOCATION'
 
 
@@ -85,33 +85,39 @@ def test_integrated_named_entity_add():
     initial_entity = NamedEntity('Alex Hebing', 'stanford', 0, 'PERSON')    
     ine = IntegratedNamedEntity(initial_entity, default_type_preferences())
 
-    next_ne = NamedEntity('Alex Hebing', 'spacy', 0, 'PERSON')
+    # If a preferred type is inserted (and type_count is equal),
+    # type AND text should move to preferred type
+    next_ne = NamedEntity('Alex', 'polyglot', 0, 'LOCATION')
     ine.add(next_ne)
 
     assert len(ine.sources_types) == 2
-    assert ine.get_types() == ['PERSON']
-    assert ine.alt_texts == []
+    assert ine.get_types().sort() == ['PERSON', 'LOCATION'].sort()
+    assert ine.get_type() == 'LOCATION'
+    assert ine.get_text() == 'Alex'
+    assert ine.get_alt_texts() == ['Alex Hebing']
 
-    # Now insert one with preferred type
-    next_ne = NamedEntity('Alex', 'polyglot', 0, 'LOCATION')
+    # If a third Entity is added with type equal to the first, but text to the second,
+    # the most often suggested value for both should emerge
+    next_ne = NamedEntity('Alex', 'spacy', 0, 'PERSON')
     ine.add(next_ne)
 
     assert len(ine.sources_types) == 3
     assert ine.get_types().sort() == ['PERSON', 'LOCATION'].sort()
-    assert ine.text == 'Alex'
-    assert ine.alt_texts == ['Alex Hebing']
+    assert ine.get_type() == 'PERSON'
+    assert ine.get_text() == 'Alex'
+    assert ine.get_alt_texts() == ['Alex Hebing']
 
-    # Now insert one with same text and type as first one
+    # A fourth entity, which makes the text score equal again (type is still PERSON)
     next_ne = NamedEntity('Alex Hebing', 'spotlight', 0, 'PERSON')
     ine.add(next_ne)
-
-    # The below proves the add logic is still messy, especially with regard to integrating the type.
-    # Let it fail till a solution is found / implemented.
-    # See the TODO in the add() method.
+    
     assert len(ine.sources_types) == 4
     assert ine.get_types().sort() == ['PERSON', 'LOCATION'].sort()
-    assert ine.text == 'Alex'
-    assert ine.alt_texts == ['Alex Hebing']
+    assert ine.get_type() == 'PERSON'
+    
+    # Now the outcome of get_text() is based on chance (see the documentation for get_text())
+    assert ine.get_text() == 'Alex Hebing' or ine.get_text() == 'Alex' 
+    assert ine.get_alt_texts() == ['Alex'] or ine.get_alt_texts() == ['Alex Hebing']
 
 
 def test_integrate():
@@ -121,15 +127,15 @@ def test_integrate():
     assert len(actual_ines) == 3
 
     for ine in actual_ines:
-        if (ine.text == 'Utrecht'):
+        if (ine.get_text() == 'Utrecht'):
             assert ine.get_count() == 3
             assert ine.get_type() == 'LOCATION'
             assert ine.get_type_certainty() == 2
-        if (ine.text == 'Gouda'):
+        if (ine.get_text() == 'Gouda'):
             assert ine.get_count() == 4
             assert ine.get_type() == 'LOCATION'
             assert ine.get_type_certainty() == 4
-        if (ine.text == 'John Smith'):
+        if (ine.get_text() == 'John Smith'):
             assert ine.get_count() == 3
             assert ine.get_type() == 'PERSON'
             assert ine.get_type_certainty() == 2
