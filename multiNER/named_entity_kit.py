@@ -210,10 +210,14 @@ def integrate(named_entities, type_preferences):
 
 
 def filter_entities(integrated_named_entities, leading_packages, other_packages_min):
+    '''
+    Filter the entities by excluding the ones not suggested by a leading package,
+    and not suggested by more that other_packages_min.
+    '''    
+    # Note that ine/ines is an abbreviation for integrated_named_entity/ies
     filtered_ines = []
 
     for ine in integrated_named_entities:
-
         was_added = False
 
         for p in leading_packages:
@@ -232,6 +236,7 @@ def set_contexts(integrated_named_entities, complete_text, context_len):
     '''
     Set the context for integrated named entities
     '''
+    # Note that ine/ines is an abbreviation for integrated_named_entity/ies
     for ine in integrated_named_entities:
         leftof = complete_text[:ine.start].strip()
         l_context = " ".join(leftof.split()[-context_len:])
