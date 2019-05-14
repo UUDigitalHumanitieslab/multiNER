@@ -250,8 +250,8 @@ MultiNER returns Named Entities in which the suggestions from the various NER pa
 | Attribute | Info |
 | --- | --- |
 | pos | The start index of the entity in the text |
-| ne | The actual named entity, i.e. the text for whcih a type is suggested |
-| alt_nes | Alternative entities suggested for the same position in the text. For example, Stanford might suggest 'Angelina Jolie', whereas 'spacy might suggest 'Angelina'. Such double data is stored here. Note that it is also possible that an `alt_ne` does not have the same starting index. For example, Polyglot may find 'Universiteit Utrecht' (an ORGANIZATION), and Spotlight suggests 'Utrecht' (a LOCATION). As long as Spotlight is referring to the sam positions in the text, this is also considered an 'alt_ne'. |
+| ne | The actual named entity, i.e. the text for which a type is suggested |
+| alt_nes | Alternative entities suggested for the same position in the text. For example, Stanford might suggest 'Angelina Jolie', whereas 'spacy might suggest 'Angelina'. Such double data is stored here. Note that it is also possible that an `alt_ne` does not have the same starting index. For example, Polyglot may find 'Universiteit Utrecht' (an ORGANIZATION), and Spotlight suggests 'Utrecht' (a LOCATION). As long as Spotlight is referring to the same positions in the text, this is also considered an 'alt_ne'. |
 | right_context | A configurable number of words to the right of the entity |
 | left_context | A configurable number of words to the left of the entity |
 | count | The number of NER packages that suggest this entity |
