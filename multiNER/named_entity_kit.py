@@ -209,7 +209,7 @@ def integrate(named_entities, type_preferences):
     return integrated_nes
 
 
-def filter(integrated_named_entities, leading_packages, other_packages_min):
+def filter_entities(integrated_named_entities, leading_packages, other_packages_min):
     filtered_ines = []
 
     for ine in integrated_named_entities:

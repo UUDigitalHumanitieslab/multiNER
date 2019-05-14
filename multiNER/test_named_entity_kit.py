@@ -163,7 +163,7 @@ def test_integrate_two_types():
     assert ine.get_type_certainty() == 1
 
 
-def test_filter_leading_packages():
+def test_filter_entities_leading_packages():
     named_entities = []
 
     leading_packages = ['stanford', 'spotlight']
@@ -176,7 +176,7 @@ def test_filter_leading_packages():
     ines = integrate(named_entities, default_type_preferences())
     assert len(ines) == 2
 
-    fines = filter(ines, leading_packages, 2)
+    fines = filter_entities(ines, leading_packages, 2)
     assert len(fines) == 2
 
     # add one that should be excluded
@@ -186,11 +186,11 @@ def test_filter_leading_packages():
     ines = integrate(named_entities, default_type_preferences())
     assert len(ines) == 3
     
-    fines = filter(ines, leading_packages, 2)
+    fines = filter_entities(ines, leading_packages, 2)
     assert len(fines) == 2
 
 
-def test_filter_other_packages_min():
+def test_filter_entities_other_packages_min():
     named_entities = []
 
     leading_packages = ['stanford', 'spotlight']
@@ -202,7 +202,7 @@ def test_filter_other_packages_min():
     ines = integrate(named_entities, default_type_preferences())
     assert len(ines) == 1
 
-    fines = filter(ines, leading_packages, 2) 
+    fines = filter_entities(ines, leading_packages, 2) 
     assert len(fines) == 1
 
     #insert one that should be excluded
@@ -212,7 +212,7 @@ def test_filter_other_packages_min():
     ines = integrate(named_entities, default_type_preferences())
     assert len(ines) == 2
     
-    fines = filter(ines, leading_packages, 2)
+    fines = filter_entities(ines, leading_packages, 2)
     assert len(fines) == 1
 
 

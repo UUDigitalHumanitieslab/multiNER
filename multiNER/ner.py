@@ -108,7 +108,7 @@ from ner_packages.spotlight import Spotlight
 from ner_packages.spacy import Spacy
 from ner_packages.polyglot import Polyglot
 
-from .named_entity_kit import integrate, filter, set_contexts
+from .named_entity_kit import integrate, filter_entities, set_contexts
 
 
 class Configuration:
@@ -168,7 +168,7 @@ class MultiNER:
             entities = self.get_entities_from_ner_packages(text)
             integrated_entities = integrate(
                 entities, self.configuration.type_preference)
-            filtered_ines = filter(
+            filtered_ines = filter_entities(
                 integrated_entities, self.configuration.leading_packages, self.configuration.other_packages_min)
             set_contexts(
                 filtered_ines, input[part], self.configuration.context_length)
