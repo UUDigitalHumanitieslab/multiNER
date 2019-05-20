@@ -20,6 +20,7 @@ class Spacy(threading.Thread):
         threading.Thread.__init__(self)        
         self.text_input = text_input
         self.set_language(language)
+        self.result = []
 
 
     def set_language(self, language):
@@ -33,12 +34,15 @@ class Spacy(threading.Thread):
             raise ValueError('language {0} is not supported'.format(language))
     
 
-    def run(self):       
+    def run(self):
+        if not self.text_input:
+            return
+
         data = self.collect_data()
         self.result = self.parse_response(data)
 
 
-    def collect_data(self):
+    def collect_data(self):        
         try:
             return self.nlp_spacy(self.text_input)
         except Exception as e:

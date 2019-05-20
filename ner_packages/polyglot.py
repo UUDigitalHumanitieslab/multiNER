@@ -18,15 +18,19 @@ class Polyglot(threading.Thread):
         threading.Thread.__init__(self)
         self.language = language
         self.text_input = text_input
+        self.result = []
 
 
     def run(self):
+        if not self.text_input:
+            return
+            
         data = self.collect_data()
         polyglot_entities = self.parse_response(data)
         self.result = self.convert(polyglot_entities)
         
 
-    def collect_data(self):
+    def collect_data(self):        
         try:
             return Text(self.text_input, hint_language_code=self.language)
         except Exception as e:

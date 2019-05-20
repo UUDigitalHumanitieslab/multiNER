@@ -21,11 +21,10 @@ class Spotlight(threading.Thread):
         self.language = language
         self.text_input = text_input
         self.confidence = confidence
+        self.result = []
 
 
     def run(self):
-        self.result = []
-
         if self.text_input is None:
             return
         
@@ -44,6 +43,9 @@ class Spotlight(threading.Thread):
 
     
     def collect_data(self, text):
+        if not text:
+            return
+        
         header = {"Accept": "application/json"}
         params = {'text': text, 'confidence': str(self.confidence)}
 

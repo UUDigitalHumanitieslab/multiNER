@@ -20,11 +20,10 @@ class Stanford(threading.Thread):
         self.text_input = text_input
         self.port = port
         self.language = language
-
-    def run(self):
         self.result = []
 
-        if self.text_input is None:
+    def run(self):
+        if not self.text_input:
             return
 
         data = self.collect_data()
@@ -32,6 +31,9 @@ class Stanford(threading.Thread):
         self.result = self.convert(stanford_entities)
 
     def collect_data(self):
+        if not self.text_input:
+            return
+        
         text = self.text_input.replace('\n', ' ')
 
         done = False
