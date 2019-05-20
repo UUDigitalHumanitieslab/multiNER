@@ -1,6 +1,7 @@
 from .spotlight import Spotlight
 
 from multiNER.named_entity_kit import NamedEntity
+from multiNER.config import SPOTLIGHT_NL_URL, SPOTLIGHT_EN_URL
 
 
 def test_parse_response():
@@ -46,6 +47,67 @@ def test_parse_type_place():
     spotlight_types = {
         '@types': 'Wikidata:Q3455524,Schema:Place,DBpedia:PopulatedPlace,DBpedia:Place,DBpedia:AdministrativeRegion'}
     assert s.parse_type(spotlight_types) == "OTHER"
+
+
+def test_webservice_accent_aigu():
+    ''' 
+    This test confirms that an entity like 'José de Kruif' is processed unpredictably by Spotlight
+    Note that it requires a connection to a running DbPedia Spotlight webservice (loaded from multiNER config)
+    '''
+    control_entities = get_webservice_response('Gouda en Amsterdam liggen in Nederland')
+    if (len(control_entities) == 0):
+        print("The DbPedia Spotlight webservice is required for this test to pass")
+        assert 0    
+    assert len(control_entities) == 3    
+    
+    # Interestingly, if the word with the aigu is the first word there is no problem, no entities are found
+    entities = get_webservice_response('José de Kruif')
+    assert len(entities) == 0
+    
+    entities = get_webservice_response('Brené Brown')
+    assert len(entities) == 0
+
+    # If further down the sentence, a name with an aigu in it is interpreted as 'A9' with LOCATION as type
+    entities = get_webservice_response('Ieder ander woord voor de naam José de Kruif')
+    assert len(entities) == 1        
+    assert entities[0].text == 'A9'
+    assert entities[0].type == 'LOCATION'
+
+    # is interpreted as 'A9' with LOCATION as type
+    entities = get_webservice_response('Bij het college van José de Kruif in Amsterdam')
+    assert len(entities) == 2        
+    assert entities[0].text == 'A9'
+    assert entities[0].type == 'LOCATION'
+    assert entities[1].text == 'Amsterdam'
+    assert entities[1].type == 'LOCATION'
+
+    # It behaves similarly for other combinations of locations and names:
+    entities = get_webservice_response('Amsterdam - Een lezing van Brené Brown')
+    assert len(entities) == 2
+    assert entities[0].text == 'Amsterdam'
+    assert entities[0].type == 'LOCATION'
+    assert entities[1].text == 'A9'
+    assert entities[1].type == 'LOCATION'
+    
+    # However, this is not always true: if the sentence is almost entirely similar (i.e. location first and PERSON at the end)
+    # 'José de Kruif' yields 'Jos' of type OTHER
+    entities = get_webservice_response('Amsterdam komt eerst en dan José de Kruif')
+    assert len(entities) == 2
+    assert entities[1].text == 'Jos'
+    assert entities[1].type == 'OTHER'    
+
+
+def get_webservice_response(text):
+    tasks = []
+    tasks.append(Spotlight(SPOTLIGHT_NL_URL, 1000, text_input=text))
+    tasks[-1].start()
+
+    entities = []
+
+    for task in tasks:
+        entities.extend(task.join())
+
+    return entities
 
 
 def test_get_spotlight_compatible_chunks_small_even():
