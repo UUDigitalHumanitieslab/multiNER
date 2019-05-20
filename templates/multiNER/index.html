@@ -1,0 +1,24 @@
+
+{% block content %}
+<H3>Welcome to multiNER</H3>
+<form action="/ner/" method="POST">
+    {{form.hidden_tag()}}
+    <p>What is the title of your text?</p>
+    <p>{{ form.title }}</p>
+    {% for error in form.title.errors %}
+        <span style="color: red;">[{{ error }}]</span>
+    {% endfor %}
+
+    <p>Insert your text:</p>
+    <p>{{ form.text }}</p>
+    {% for error in form.text.errors %}
+        <span style="color: red;">[{{ error }}]</span>
+    {% endfor %}
+    
+    <br />
+    <p>Choose language:</p>
+    <p>{{ form.language }}</p>
+    <br />
+    <p>{{ form.submit() }}</p>
+</form>
+{% endblock %}
