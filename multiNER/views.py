@@ -112,9 +112,7 @@ def validate_configuration(config):
         if 0 > config['context_length'] > 15:
             abort(400, "context_length should be a number between 0 and 15")
 
-    if 'leading_ner_packages' in config:
-        print('hello')
-        
+    if 'leading_ner_packages' in config:        
         for package in config['leading_ner_packages']:
             if not package in ['stanford', 'spotlight', 'spacy', 'polyglot']:
                 abort(400, "package '{}' is not supported".format(package))
