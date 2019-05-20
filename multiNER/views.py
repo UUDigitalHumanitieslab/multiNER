@@ -52,8 +52,11 @@ def collect_from_text():
     else:
         title = jsonData['title']
 
-    validated_config = validate_configuration(jsonData['configuration'])
-    ner_config = get_configuration(validated_config)
+    if 'configuration' in jsonData:
+        validated_config = validate_configuration(jsonData['configuration'])
+        ner_config = get_configuration(validated_config)
+    else:
+        ner_config = get_configuration({})
 
     multiner = MultiNER(current_app.config, ner_config)
 
