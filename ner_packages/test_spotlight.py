@@ -49,74 +49,12 @@ def test_parse_type_place():
     assert s.parse_type(spotlight_types) == "OTHER"
 
 
-def test_webservice_accent_aigu():
-    ''' 
-    This test confirms that an entity like 'José de Kruif' is processed unpredictably by Spotlight
-    Note that it requires a connection to a running DbPedia Spotlight webservice (loaded from multiNER config)
-    '''
-    run_control()    
-    
-    # Interestingly, if the word with the aigu is the first word there is no problem, no entities are found
-    entities = get_webservice_response('José de Kruif')
-    assert len(entities) == 0
-    
-    entities = get_webservice_response('Brené Brown')
-    assert len(entities) == 0
-
-    # If further down the sentence, a name with an aigu in it is interpreted as 'A9' with LOCATION as type
-    entities = get_webservice_response('Ieder ander woord voor de naam José de Kruif')
-    assert len(entities) == 1        
-    assert entities[0].text == 'A9'
-    assert entities[0].type == 'LOCATION'
-
-    # is interpreted as 'A9' with LOCATION as type
-    entities = get_webservice_response('Bij het college van José de Kruif in Amsterdam')
-    assert len(entities) == 2        
-    assert entities[0].text == 'A9'
-    assert entities[0].type == 'LOCATION'
-    assert entities[1].text == 'Amsterdam'
-    assert entities[1].type == 'LOCATION'
-
-    # It behaves similarly for other combinations of locations and names:
-    entities = get_webservice_response('Amsterdam - Een lezing van Brené Brown')
-    assert len(entities) == 2
-    assert entities[0].text == 'Amsterdam'
-    assert entities[0].type == 'LOCATION'
-    assert entities[1].text == 'A9'
-    assert entities[1].type == 'LOCATION'
-    
-    # However, this is not always true: if the sentence is almost entirely similar (i.e. location first and PERSON at the end)
-    # 'José de Kruif' yields 'Jos' of type OTHER
-    entities = get_webservice_response('Amsterdam komt eerst en dan José de Kruif')
-    assert len(entities) == 2
-    assert entities[1].text == 'Jos'
-    assert entities[1].type == 'OTHER'    
-
-def test_webservice_accent_other_accents():
-    ''' 
-    This test confirms that, other than entities that include an e aigu (é), Spotlight does not yield false entities
-    for other accents. In all cases no entities are recognized, so also no false ones with weird texts (i.e. 'A9' like above)
-    are returned.
-    Note that it requires a connection to a running DbPedia Spotlight webservice (loaded from multiNER config)
-    '''
-    run_control()
-    
-    # no accents
-    entities = get_webservice_response('Een zin met een Jose de Kruif uit Houten')
-    # no entities / no problem    
-    assert len(entities) == 0
-    
-    # accent grave
-    entities = get_webservice_response('Een zin met een Josè De Kruif uit Houten')
-    assert len(entities) == 0
-
-    # accent circumflex
-    entities = get_webservice_response('Een zin met een Josê De Kruif uit Houten')
-    assert len(entities) == 0
-
-    # e umlaut
-    entities = get_webservice_response('Een zin met een Josë De Kruif uit Houten')
-    assert len(entities) == 0
+def test_strip_accents():
+    s = get_instance()
+    assert s.strip_accents('José de Kruif') == 'Jose de Kruif'
+    assert s.strip_accents('Josè de Kruif') == 'Jose de Kruif'
+    assert s.strip_accents('Josê de Kruif') == 'Jose de Kruif'
+    assert s.strip_accents('Josë de Kruif') == 'Jose de Kruif'
 
 
 def run_control():
