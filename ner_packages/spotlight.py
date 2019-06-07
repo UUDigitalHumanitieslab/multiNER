@@ -2,8 +2,6 @@
 import threading
 import requests
 import unicodedata
-from textwrap import wrap
-
 
 from multiNER.named_entity_kit import NamedEntity
 
@@ -28,9 +26,8 @@ class Spotlight(threading.Thread):
 
         if self.text_input is None:
             return
-
-        text_chunks = self.get_spotlight_compatible_chunks(self.text_input)
-        self.result = self.collect_entities(text_chunks)
+        
+        self.result = self.collect_entities(self.text_input)
 
     def strip_accents(self, text):
         '''
@@ -49,14 +46,13 @@ class Spotlight(threading.Thread):
 
         return str(text)
 
-    def collect_entities(self, text_chunks):
+    def collect_entities(self, text):
         entities = []
-
-        for chunk in text_chunks:
-            data = self.collect_data(chunk)
-            entities.extend(self.parse_response(data))
+        data = self.collect_data(text)
+        entities.extend(self.parse_response(data))
 
         return entities
+        
 
     def collect_data(self, text):
         header = {"Accept": "application/json"}
@@ -68,7 +64,7 @@ class Spotlight(threading.Thread):
 
         while not done and retry < max_retry:
             try:
-                response = requests.get(self.url,
+                response = requests.post(self.url,
                                         params=params,
                                         headers=header,
                                         timeout=self.timeout)
@@ -83,14 +79,7 @@ class Spotlight(threading.Thread):
 
         return data
 
-    '''
-    Spotlight receives the text as a parameter in the url. Therefore the max_length is limited to around 7000 characters
-    This method cuts the text into pieces that the Spotlight API can handle.
-    '''
-
-    def get_spotlight_compatible_chunks(self, text, chunk_length=7000):
-        return wrap(text, chunk_length)
-
+    
     def parse_response(self, data):
         entities = []
 

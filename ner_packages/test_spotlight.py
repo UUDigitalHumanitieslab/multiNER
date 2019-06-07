@@ -97,24 +97,17 @@ def get_webservice_response(text):
 
     return entities
 
+def test_long_text():
+    '''
+    Before POSTing the request, we made chunks to sent to spotlight via url,
+    because of URL length restrictions. Prove this is no longer needed.
+    '''    
+    run_control()
 
-def test_get_spotlight_compatible_chunks_small_even():
-    s = get_instance()
-    text = '1234567890'
-    assert s.get_spotlight_compatible_chunks(
-        text, 2) == ['12', '34', '56', '78', '90']
+    entities = get_webservice_response(get_long_text())
 
-
-def test_get_spotlight_compatible_chunks_small_uneven():
-    s = get_instance()
-    text = '123456789'
-    assert s.get_spotlight_compatible_chunks(
-        text, 2) == ['12', '34', '56', '78', '9']
-
-
-def test_get_spotlight_compatible_chunks_long():
-    s = get_instance()
-    assert len(s.get_spotlight_compatible_chunks(get_long_text())) == 2
+    # the request shouldn't fail
+    assert True == True
 
 
 def get_instance():
