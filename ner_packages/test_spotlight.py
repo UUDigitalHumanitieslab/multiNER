@@ -54,11 +54,7 @@ def test_webservice_accent_aigu():
     This test confirms that an entity like 'José de Kruif' is processed unpredictably by Spotlight
     Note that it requires a connection to a running DbPedia Spotlight webservice (loaded from multiNER config)
     '''
-    control_entities = get_webservice_response('Gouda en Amsterdam liggen in Nederland')
-    if (len(control_entities) == 0):
-        print("The DbPedia Spotlight webservice is required for this test to pass")
-        assert 0    
-    assert len(control_entities) == 3    
+    run_control()    
     
     # Interestingly, if the word with the aigu is the first word there is no problem, no entities are found
     entities = get_webservice_response('José de Kruif')
@@ -95,6 +91,40 @@ def test_webservice_accent_aigu():
     assert len(entities) == 2
     assert entities[1].text == 'Jos'
     assert entities[1].type == 'OTHER'    
+
+def test_webservice_accent_other_accents():
+    ''' 
+    This test confirms that, other than entities that include an e aigu (é), Spotlight does not yield false entities
+    for other accents. In all cases no entities are recognized, so also no false ones with weird texts (i.e. 'A9' like above)
+    are returned.
+    Note that it requires a connection to a running DbPedia Spotlight webservice (loaded from multiNER config)
+    '''
+    run_control()
+    
+    # no accents
+    entities = get_webservice_response('Een zin met een Jose de Kruif uit Houten')
+    # no entities / no problem    
+    assert len(entities) == 0
+    
+    # accent grave
+    entities = get_webservice_response('Een zin met een Josè De Kruif uit Houten')
+    assert len(entities) == 0
+
+    # accent circumflex
+    entities = get_webservice_response('Een zin met een Josê De Kruif uit Houten')
+    assert len(entities) == 0
+
+    # e umlaut
+    entities = get_webservice_response('Een zin met een Josë De Kruif uit Houten')
+    assert len(entities) == 0
+
+
+def run_control():
+    control_entities = get_webservice_response('Gouda en Amsterdam liggen in Nederland')
+    if (len(control_entities) == 0):
+        print("The DbPedia Spotlight webservice is required for this test to pass")
+        assert 0    
+    assert len(control_entities) == 3
 
 
 def get_webservice_response(text):
