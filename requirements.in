@@ -1,5 +1,6 @@
 # Morfessor is a special case (on the server): because it refused to install
 # our Puppet module installs it from a local copy (in the deployment folder).
+# Therefore it's version number is fixed: pip should not try to update it ever.
 spacy 
 requests
 lxml
@@ -9,6 +10,8 @@ flask-wtf
 pyicu>=2.3<3
 pycld2
 morfessor==2.0.4
+unidecode
+pytest
 https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-2.1.0/en_core_web_sm-2.1.0.tar.gz#egg=en_core_web_sm
 https://github.com/explosion/spacy-models/releases/download/nl_core_news_sm-2.1.0/nl_core_news_sm-2.1.0.tar.gz#egg=nl_core_news_sm
 https://github.com/explosion/spacy-models/releases/download/it_core_news_sm-2.1.0/it_core_news_sm-2.1.0.tar.gz#egg=it_core_news_sm
