@@ -132,6 +132,11 @@ Polyglot, like Spacy, is a Python package and can be installed via Pip. Setting 
 
 It is somewhat special in that it tries to guess the language of the text it is being supplied (although you can suggest a language). This potentially leads to errors if models are not installed for the language Polyglot thinks it is NER-ing.
 
+#### Prerequisites
+
+Installing Polyglot is dependent on the presence of the package `libicu-dev` (`sudo apt install libicu-dev`). If you do not have this package installed, you will get errors like `Command "python setup.py egg_info" failed with error code 1 in /tmp/tmp3wehjwuobuild/pyicu/` when installing via pip (or compiling with pip-tools). This requirement that this error comes from is pyicu. More solutions to this problem (i.e. for other OSs) [in this SO post](https://stackoverflow.com/questions/40940188/error-installing-pip-pyicu)
+
+
 #### Models
 
 Polyglot models are Python packages, but these are not automatically installed. You need to manually download them. For example, Dutch:
