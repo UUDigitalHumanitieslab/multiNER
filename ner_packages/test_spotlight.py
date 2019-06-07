@@ -57,6 +57,26 @@ def test_strip_accents():
     assert s.strip_accents('Josë de Kruif') == 'Jose de Kruif'
 
 
+def test_webservice_accent_aigu():
+    ''' 
+    This test confirms that an entity like 'José de Kruif' is NO LONGER processed unpredictably by Spotlight
+    Note that it requires a connection to a running DbPedia Spotlight webservice (loaded from multiNER config)
+    '''
+    run_control()    
+    
+    # Before normalizing non-ascii characters before sending them to Spotlight,
+    # spotlight treated e aigu (é) very unpredictably (i.e. interpreting a name with an aigu in it 
+    # 'A9' with LOCATION as type -- as long as it was not the first word in the sentenc). 
+    # Prove this is no longer the case:
+    entities = get_webservice_response('Ieder ander woord voor de naam José de Kruif')
+    assert len(entities) == 0
+    
+    # If the sentence had a location first and PERSON at the end,
+    # 'José de Kruif' yielded 'Jos' of type OTHER. It does this no longer.
+    entities = get_webservice_response('Amsterdam komt eerst en dan José de Kruif')
+    assert len(entities) == 1     
+
+
 def run_control():
     control_entities = get_webservice_response('Gouda en Amsterdam liggen in Nederland')
     if (len(control_entities) == 0):
