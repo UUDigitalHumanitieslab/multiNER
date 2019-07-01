@@ -25,8 +25,7 @@ def index():
             {1: 'LOCATION', 2: 'PERSON', 3: 'ORGANIZATION', 4: 'OTHER'})
 
         multiner = MultiNER(current_app.config, ner_config)
-        input = {'title': form.title.data, 'text': text}
-        entities_per_part = multiner.find_entities(input)
+        entities_per_part = multiner.find_entities(text)
 
         return render_template('multiNER/results.html', text=text, entities=entities_per_part)
 
@@ -47,20 +46,13 @@ def collect_from_text():
     # extract input and validate
     text = jsonData['text']
 
-    if not 'title' in jsonData:
-        title = None
-    else:
-        title = jsonData['title']
-
     validated_config = validate_configuration(jsonData['configuration'])
     ner_config = get_configuration(validated_config)
 
     multiner = MultiNER(current_app.config, ner_config)
+    entities = multiner.find_entities(text)
 
-    input = {'title': title, 'text': text}
-    entities_per_part = multiner.find_entities(input)
-
-    resp = Response(response=json.dumps(entities_per_part),
+    resp = Response(response=json.dumps(entities),
                     mimetype='application/json; charset=utf-8')
     return (resp)
 

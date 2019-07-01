@@ -56,23 +56,20 @@ class MultiNER:
                 raise ImproperlyConfiguredException(
                     "Setting '{}' is required. Add it to your app_config.".format(rs))
 
-    def find_entities(self, input):
+    def find_entities(self, text):
         results = {}
+                
+        entities = self.get_entities_from_ner_packages(text)
+        integrated_entities = integrate(
+            entities, self.configuration.type_preference)
+        filtered_ines = filter_entities(
+            integrated_entities, self.configuration.leading_packages, self.configuration.other_packages_min)
+        set_contexts(
+            filtered_ines, text, self.configuration.context_length)
 
-        for part in input:
-            text = input[part]
-            entities = self.get_entities_from_ner_packages(text)
-            integrated_entities = integrate(
-                entities, self.configuration.type_preference)
-            filtered_ines = filter_entities(
-                integrated_entities, self.configuration.leading_packages, self.configuration.other_packages_min)
-            set_contexts(
-                filtered_ines, input[part], self.configuration.context_length)
+        results['entities'] = [ine.to_jsonable() for ine in filtered_ines]
 
-            results[part] = {
-                'entities': [ine.to_jsonable() for ine in filtered_ines],
-                'text': input[part]
-            }
+        print(results)
 
         return (results)
 
