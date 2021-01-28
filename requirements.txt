@@ -4,54 +4,131 @@
 #
 #    pip-compile
 #
-atomicwrites==1.3.0       # via pytest
-attrs==19.1.0             # via jsonschema, pytest
-blis==0.2.4               # via spacy, thinc
-certifi==2019.3.9         # via requests
-chardet==3.0.4            # via requests
-click==7.0                # via flask
-cymem==2.0.2              # via preshed, spacy, thinc
+atomicwrites==1.3.0
+    # via pytest
+attrs==19.1.0
+    # via
+    #   jsonschema
+    #   pytest
+blis==0.2.4
+    # via
+    #   spacy
+    #   thinc
+certifi==2019.3.9
+    # via requests
+chardet==3.0.4
+    # via requests
+click==7.0
+    # via flask
+cymem==2.0.2
+    # via
+    #   preshed
+    #   spacy
+    #   thinc
 https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-2.1.0/en_core_web_sm-2.1.0.tar.gz#egg=en_core_web_sm
+    # via -r requirements.in
 flask-wtf==0.14.2
+    # via -r requirements.in
 flask==1.0.3
-idna==2.8                 # via requests
-importlib-metadata==0.17  # via pluggy, pytest
+    # via
+    #   -r requirements.in
+    #   flask-wtf
+idna==2.8
+    # via requests
+importlib-metadata==0.17
+    # via
+    #   pluggy
+    #   pytest
 https://github.com/explosion/spacy-models/releases/download/it_core_news_sm-2.1.0/it_core_news_sm-2.1.0.tar.gz#egg=it_core_news_sm
-itsdangerous==1.1.0       # via flask
-jinja2==2.10.1            # via flask
-jsonschema==3.0.1         # via spacy
-lxml==4.3.3
-markupsafe==1.1.1         # via jinja2
-more-itertools==7.0.0     # via pytest
+    # via -r requirements.in
+itsdangerous==1.1.0
+    # via flask
+jinja2==2.10.1
+    # via flask
+jsonschema==3.0.1
+    # via spacy
+lxml==4.6.2
+    # via -r requirements.in
+markupsafe==1.1.1
+    # via jinja2
+more-itertools==7.0.0
+    # via pytest
 morfessor==2.0.4
-murmurhash==1.0.2         # via spacy, thinc
+    # via -r requirements.in
+murmurhash==1.0.2
+    # via
+    #   spacy
+    #   thinc
 https://github.com/explosion/spacy-models/releases/download/nl_core_news_sm-2.1.0/nl_core_news_sm-2.1.0.tar.gz#egg=nl_core_news_sm
-numpy==1.16.4             # via blis, spacy, thinc
-packaging==19.0           # via pytest
-pathlib2==2.3.3           # via importlib-metadata, pytest
-plac==0.9.6               # via spacy, thinc
-pluggy==0.12.0            # via pytest
+    # via -r requirements.in
+numpy==1.16.4
+    # via
+    #   blis
+    #   spacy
+    #   thinc
+packaging==19.0
+    # via pytest
+plac==0.9.6
+    # via
+    #   spacy
+    #   thinc
+pluggy==0.12.0
+    # via pytest
 polyglot==16.7.4
-preshed==2.0.1            # via spacy, thinc
-py==1.8.0                 # via pytest
+    # via -r requirements.in
+preshed==2.0.1
+    # via
+    #   spacy
+    #   thinc
+py==1.8.0
+    # via pytest
 pycld2==0.31
+    # via -r requirements.in
 pyicu==2.3.1
-pyparsing==2.4.0          # via packaging
-pyrsistent==0.15.2        # via jsonschema
+    # via -r requirements.in
+pyparsing==2.4.0
+    # via packaging
+pyrsistent==0.15.2
+    # via jsonschema
 pytest==4.6.2
+    # via -r requirements.in
 requests==2.21.0
-scandir==1.10.0           # via pathlib2
-six==1.12.0               # via jsonschema, packaging, pathlib2, pyrsistent, pytest
+    # via
+    #   -r requirements.in
+    #   spacy
+six==1.12.0
+    # via
+    #   jsonschema
+    #   packaging
+    #   pytest
 spacy==2.1.4
-srsly==0.0.6              # via spacy, thinc
-thinc==7.0.4              # via spacy
-tqdm==4.32.1              # via thinc
-urllib3==1.24.3           # via requests
-wasabi==0.2.2             # via spacy, thinc
-wcwidth==0.1.7            # via pytest
-werkzeug==0.15.4          # via flask
-wtforms==2.2.1            # via flask-wtf
-zipp==0.5.1               # via importlib-metadata
+    # via
+    #   -r requirements.in
+    #   en-core-web-sm
+    #   it-core-news-sm
+    #   nl-core-news-sm
+srsly==0.0.6
+    # via
+    #   spacy
+    #   thinc
+thinc==7.0.4
+    # via spacy
+tqdm==4.32.1
+    # via thinc
+urllib3==1.24.3
+    # via requests
+wasabi==0.2.2
+    # via
+    #   spacy
+    #   thinc
+wcwidth==0.1.7
+    # via pytest
+werkzeug==0.15.4
+    # via flask
+wtforms==2.2.1
+    # via flask-wtf
+zipp==0.5.1
+    # via importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:
-# setuptools==41.0.1        # via jsonschema
+# setuptools
