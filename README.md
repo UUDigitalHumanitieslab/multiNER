@@ -4,10 +4,10 @@ MultiNER is a webservice that combines the output from four different [named-ent
 
 The following packages are used:
 
-    - [Stanford NER](https://nlp.stanford.edu/software/CRF-NER.shtml)
-    - [DBpedia Spotlight](https://www.dbpedia-spotlight.org/)
-    - [spaCy](https://spacy.io/)
-    - [polyglot](http://polyglot.readthedocs.io/)
+- [Stanford NER](https://nlp.stanford.edu/software/CRF-NER.shtml)
+- [DBpedia Spotlight](https://www.dbpedia-spotlight.org/)
+- [spaCy](https://spacy.io/)
+- [polyglot](http://polyglot.readthedocs.io/)
 
 ## Overview
 
