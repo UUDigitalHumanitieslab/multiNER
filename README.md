@@ -4,10 +4,10 @@ MultiNER is a webservice that combines the output from four different [named-ent
 
 The following packages are used:
 
-    - Stanfor NER (https://nlp.stanford.edu/software/CRF-NER.shtml)
-    - DBpedia Spotlight (https://www.dbpedia-spotlight.org/)
-    - spaCy (https://spacy.io/)
-    - polyglot (http://polyglot.readthedocs.io/)
+    - [Stanford NER](https://nlp.stanford.edu/software/CRF-NER.shtml)
+    - [DBpedia Spotlight](https://www.dbpedia-spotlight.org/)
+    - [spaCy](https://spacy.io/)
+    - [polyglot](http://polyglot.readthedocs.io/)
 
 ## Overview
 
@@ -27,18 +27,18 @@ More information and download link can be found in [this article](https://nlp.st
 
 #### Models
 
-Stanford by default includes some English models (in the folder `classifiers`). Note that the Dutch model can be found in Surfdrive: '/DigitalHumanitiesLabatUU/PlaceNameDisambiguation/multiNER/stanford/dutch.tar.gz'. Simply untar and supply dutch.gz as `<themodelyouwanttouse>`.
+Stanford by default includes some English models (in the folder `classifiers`). Models in other languages can be found as archives in tar format, e.g., `dutch.tar.gz`. Untar such a model and supply it as `<themodelyouwanttouse>`.
 
 #### Run
 
 ```java
-java -mx400m -cp stanford-ner.jar edu.stanford.nlp.ie.NERServer            -outputFormat inlineXML -encoding "utf-8" -loadClassifier classifiers/<themodelyouwanttouse>.gz -port <whateverportyoulike>
+java -mx400m -cp stanford-ner.jar edu.stanford.nlp.ie.NERServer -outputFormat inlineXML -encoding "utf-8" -loadClassifier classifiers/<themodelyouwanttouse>.gz -port <whateverportyoulike>
 ```
 
 For example, with the complete English model loaded and running at port 9899:
 
 ```java
-java -mx400m -cp stanford-ner.jar edu.stanford.nlp.ie.NERServer            -outputFormat inlineXML -encoding "utf-8" -loadClassifier classifiers/english.all.3class.distsim.crf.ser.gz -port 9899
+java -mx400m -cp stanford-ner.jar edu.stanford.nlp.ie.NERServer -outputFormat inlineXML -encoding "utf-8" -loadClassifier classifiers/english.all.3class.distsim.crf.ser.gz -port 9899
 ```
 
 #### Access
